@@ -1,3 +1,6 @@
+#data XML files (too large)
+/data/xml/
+
 # History files
 .Rhistory
 .Rapp.history
