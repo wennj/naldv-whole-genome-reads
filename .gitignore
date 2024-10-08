@@ -1,3 +1,6 @@
+#keine DS_Store 
+.DS_Store
+
 #data XML files (too large)
 /data/xml/
 
