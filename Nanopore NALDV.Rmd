@@ -237,7 +237,7 @@ pGB <- ggplot(df_complete, aes(x = CreateDate, y = CumulativeValue,
                      breaks = seq(0, 700, by = 50)) +
   theme(panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
-        legend.position.inside  = c(0.4, 0.7),
+        legend.position  = c(0.4, 0.7),
         legend.title = element_blank(),
         axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
   ylab("Cumulative Frequency") +
@@ -316,7 +316,15 @@ print(pSRA)
 The library patchwork can be used to create beautiful graphics. Here, the NALDV statistics from NCBI Genbank and NCBI SRA are compared.
 
 ```{r}
+combined_plot <- (pGB + pSRA) + plot_annotation(tag_levels = 'A')
 
+# Anzeige des kombinierten Plots
+print(combined_plot)
+
+f <- 1.2
+# Speichern des kombinierten Plots als PDF
+file_name <- "output/NALDV_stats_on_Genbank_SRA.png"
+ggsave(file_name, combined_plot, width = 8*f, height = 3*f)
 ```
 
 # Phred Quality Score and Error Probability
