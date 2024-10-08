@@ -313,6 +313,12 @@ pSRA <- ggplot(sra_platform, aes(x = ReleaseDate, y = CumulativeCount,
 print(pSRA)
 ```
 
-# Phred Quality Score and Error Probability 
+The library patchwork can be used to create beautiful graphics. Here, the NALDV statistics from NCBI Genbank and NCBI SRA are compared.
+
+```{r}
+
+```
+
+# Phred Quality Score and Error Probability
 
 tbd
