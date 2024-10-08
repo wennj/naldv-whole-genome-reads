@@ -18,7 +18,7 @@ The following script shows how to approach nanopore sequence data sets of NALDVs
 
 Particular attention is paid to the detection of reads that may comprise entire genomes of NALDVs and represent individual viral genomes.
 
-# Required libraries
+## Required libraries
 
 The following libraries are required to run this script.
 
@@ -31,13 +31,15 @@ library(RColorBrewer)
 `%ni%` <- Negate(`%in%`)
 ```
 
-# Consensus genomes published on NCBI Genbank
+# Creating NCBI Statistics on NALDV Genome Data
+
+## Consensus genomes published on NCBI Genbank
 
 To get an overview of the number of published NALDV genomes (as of July 2024), all NCBI Genbank entries found under the individual names of the virus families (Baculoviridae, Nudiviridae, Nimaviridae, Hytrosaviridae) are available in the directory /data/xml. A filter has been set to only allow sequences in the range of complete genomes. The list is probably not complete, but it is a good approximation of all genomes that are publicly available at this time.
 
 The XML files are first read into R and converted into a data frame. The virus name (isolate, strain), accession number, genome length and publication date are extracted.
 
-## Function to read and process XML files
+### Function to read and process XML files
 
 A function is needed to read the NCBI Genbank XML files. This is provided below. However, the XML files are very large and therefore not included in this Github repository. Instead, only one file (for the virus family Hytrosaviridae) was provided. Instead, the output for all XML, a CSV file, was added to the Github repository. This is imported below so that the entire data set can be further processed.
 
@@ -92,20 +94,24 @@ process_virus_family <- function(file_path, family_name, must_be_in_name = NULL,
 }
 ```
 
-## Importing the entire genome data set from a CSV file
+### Importing the entire genome data set from a CSV file
 
 The code below creates a DataFrame from provided XML files (available from NCBI GenBank) that extracts the names of virus genomes, their lengths and the date of publication. However, since the XML files are too large to include in this GitHub repository, the code first checks whether the XML files have already been processed and saved as a CSV file. Since this is the case, the existing CSV file that is attached to the repository is read and used.
 
 ```{r}
 # path to file
-file_path <- "output/genome genbank table/xml_imported_virus_data.csv"
+file_path <- "output/genome_genbank_table/xml_imported_virus_data.csv"
 
 # test if file is already present
 if (file.exists(file_path)) {
   
   # CSV file exists; read CSV
-  df <- read.csv("output/genome genbank table/xml_imported_virus_data.csv", stringsAsFactors = FALSE)
-  print("File with genome data was successfully read.")
+  df <- read.csv(file_path, stringsAsFactors = FALSE)
+  # Create the specific dataframe per virus family
+  dfBAC <- df[df$Family == "Baculoviridae", ]
+  dfNimV <- df[df$Family == "Nimaviridae", ]
+  dfNV <- df[df$Family == "Nudiviridae", ]
+  dfHV <- df[df$Family == "Hytrosaviridae", ]
   
 } else {
   
@@ -113,12 +119,26 @@ if (file.exists(file_path)) {
   dfBAC <- process_virus_family(
     file_path = "data/xml/Baculoviridae_ncbi_genbank_entry.xml",
     family_name = "Baculoviridae",
-    must_be_in_name = c("nucleopolyhedrovirus", "granulovirus", "SNPV", "nuclopolyhedrovirus",
-                        "Alphabaculovirus", "Betabaculovirus", "betabaculovirus", "NPV",
-                        "nucleopolyhedrosis", "alphabaculovirus"),
-    alpha_terms = c("nucleopolyhedrovirus", "SNPV", "nuclopolyhedrovirus", "Alphabaculovirus", 
-                    "NPV", "nucleopolyhedrosis", "alphabaculovirus"),
-    beta_terms = c("granulovirus", "Betabaculovirus", "betabaculovirus")
+    must_be_in_name = c("nucleopolyhedrovirus", 
+                        "granulovirus", 
+                        "SNPV", 
+                        "nuclopolyhedrovirus",
+                        "Alphabaculovirus", 
+                        "Betabaculovirus", 
+                        "betabaculovirus", 
+                        "NPV",
+                        "nucleopolyhedrosis", 
+                        "alphabaculovirus"),
+    alpha_terms = c("nucleopolyhedrovirus", 
+                    "SNPV", 
+                    "nuclopolyhedrovirus", 
+                    "Alphabaculovirus", 
+                    "NPV", 
+                    "nucleopolyhedrosis", 
+                    "alphabaculovirus"),
+    beta_terms = c("granulovirus", 
+                   "Betabaculovirus", 
+                   "betabaculovirus")
   )
   
   
@@ -146,16 +166,14 @@ if (file.exists(file_path)) {
   df <- rbind(dfNV, dfBAC, dfHV, dfNimV)
   
   #export zu CSV file
-  write.csv(df, file = "output/genome genbank table/xml_imported_virus_data.csv", row.names = FALSE)
+  write.csv(df, file = file_path, row.names = FALSE)
   
-  
-  print("The CSV file with the genome data does not exist. The code for reading in the XML files from NCBI Genbank is being executed.")
 }
 
 print(head(df))
 ```
 
-## Visualisation of genome publications over time
+### Visualisation of genome publications over time
 
 After the data frame has been created, the time course of the publication of the consensus sequences can be displayed with ggplot2.
 
@@ -228,6 +246,73 @@ pGB <- ggplot(df_complete, aes(x = CreateDate, y = CumulativeValue,
 print(pGB)
 ```
 
-# Sequence data available from NCBI SRA
+## Sequence data available from NCBI SRA
 
-\<tbd\>
+Analysing the availability of Illumina and Nanopore data sets on NCBI SRA is a bit easier. You can search and filter for the datasets on NCBI. All hits can be downloaded directly as a CSV files. These files then serve as input for the subsequent analysis. The result is a plot showing the time course of the published SRA data sets (Illumina and Nanopore) (as of July 2024).
+
+```{r}
+sra_df_BAC <- read.csv("data/sra table/SraRunInfo_BAC.csv")
+sra_df_NV<- read.csv("data/sra table/SraRunInfo_NV.csv")
+sra_df_Nim <- read.csv("data/sra table/SraRunInfo_Nim.csv")
+
+sra_df <- rbind(sra_df_BAC, sra_df_NV, sra_df_Nim)
+
+sra_df$ReleaseDate <- as.Date(sra_df$ReleaseDate)
+
+sra_df <- sra_df[order(sra_df$ReleaseDate), ]
+
+sra_IL <- subset(sra_df, Platform == "ILLUMINA")
+sra_PB <- subset(sra_df, Platform == "PACBIO_SMRT")
+sra_ON <- subset(sra_df, Platform == "OXFORD_NANOPORE")
+sra_NA <- subset(sra_df, Platform %ni% c("ILLUMINA", "OXFORD_NANOPORE", "PACBIO_SMRT"))
+
+sra_IL$CumulativeCount <- seq_along(sra_IL$ReleaseDate)
+sra_ON$CumulativeCount <- seq_along(sra_ON$ReleaseDate)
+sra_PB$CumulativeCount <- seq_along(sra_PB$ReleaseDate)
+sra_NA$CumulativeCount <- seq_along(sra_NA$ReleaseDate)
+
+#Ich vereinfache die Daten und kombiniere ONT und PB:
+sra_short <- sra_IL
+sra_short$Platform <- "Short Read: Illumina"
+
+sra_long <- rbind(sra_ON, sra_PB)
+sra_long <- sra_long[order(sra_long$ReleaseDate), ]
+sra_long$Platform <- "Long Read: ONT and PacBio"
+sra_long$CumulativeCount <- seq_along(sra_long$ReleaseDate)
+
+#Combine short and long
+sra_platform <- rbind(sra_long, sra_short)
+#set the levels
+sra_platform$Platform <- factor(sra_platform$Platform, 
+                                levels = rev(c("Long Read: ONT and PacBio", 
+                                           "Short Read: Illumina")))
+
+pSRA <- ggplot(sra_platform, aes(x = ReleaseDate, y = CumulativeCount, 
+                                 fill = Platform, group = Platform)) +
+  geom_area(colour = "black", 
+            position = "identity",
+            linewidth = 0.2, alpha = 0.8) +
+  scale_fill_brewer(palette = "Greens") +
+  theme_bw() +
+  scale_x_date(breaks = date_breaks, date_labels = "%Y", 
+               limits = as.Date(c("2012-01-01", "2024-12-31")))+
+  scale_y_continuous(expand = c(0, 0),
+                     limits = c(0, 250),
+                     breaks = seq(0, 250, by = 50)) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.3, 0.85),
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Cumulative Frequency") +
+  xlab("Year of NCBI SRA Release") +
+  annotate("text", x = as.Date("2020-09-01"), y = 100, 
+           label = "+153 LdMNPV (2018/02)", 
+           size = 3, color = "black")
+
+print(pSRA)
+```
+
+# Phred Quality Score and Error Probability 
+
+tbd
