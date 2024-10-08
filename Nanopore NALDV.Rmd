@@ -37,8 +37,11 @@ To get an overview of the number of published NALDV genomes (as of July 2024), a
 
 The XML files are first read into R and converted into a data frame. The virus name (isolate, strain), accession number, genome length and publication date are extracted.
 
+## Function to read and process XML files
+
+A function is needed to read the NCBI Genbank XML files. This is provided below. However, the XML files are very large and therefore not included in this Github repository. Instead, only one file (for the virus family Hytrosaviridae) was provided. Instead, the output for all XML, a CSV file, was added to the Github repository. This is imported below so that the entire data set can be further processed.
+
 ```{r}
-# Function to read and process XML files
 process_virus_family <- function(file_path, family_name, must_be_in_name = NULL, alpha_terms = NULL, beta_terms = NULL) {
   
   # Read the XML file
@@ -87,45 +90,72 @@ process_virus_family <- function(file_path, family_name, must_be_in_name = NULL,
   
   return(df)
 }
+```
 
-# Read Baculoviridae data
-dfBAC <- process_virus_family(
-  file_path = "data/xml/Baculoviridae_ncbi_genbank_entry.xml",
-  family_name = "Baculoviridae",
-  must_be_in_name = c("nucleopolyhedrovirus", "granulovirus", "SNPV", "nuclopolyhedrovirus",
-                      "Alphabaculovirus", "Betabaculovirus", "betabaculovirus", "NPV",
-                      "nucleopolyhedrosis", "alphabaculovirus"),
-  alpha_terms = c("nucleopolyhedrovirus", "SNPV", "nuclopolyhedrovirus", "Alphabaculovirus", 
-                  "NPV", "nucleopolyhedrosis", "alphabaculovirus"),
-  beta_terms = c("granulovirus", "Betabaculovirus", "betabaculovirus")
-)
+## Importing the entire genome data set from a CSV file
 
+The code below creates a DataFrame from provided XML files (available from NCBI GenBank) that extracts the names of virus genomes, their lengths and the date of publication. However, since the XML files are too large to include in this GitHub repository, the code first checks whether the XML files have already been processed and saved as a CSV file. Since this is the case, the existing CSV file that is attached to the repository is read and used.
 
-# Read Nudiviridae data
-dfNV <- process_virus_family(
-  file_path = "data/xml/Nudiviridae_ncbi_genbank_entry.xml",
-  family_name = "Nudiviridae"
-)
+```{r}
+# path to file
+file_path <- "output/genome genbank table/xml_imported_virus_data.csv"
 
-
-# Read Hytrosaviridae data
-dfHV <- process_virus_family(
-  file_path = "data/xml/Hytrosaviridae_ncbi_genbank_entry.xml",
-  family_name = "Hytrosaviridae"
-)
-
-
-# Read Nimaviridae data
-dfNimV <- process_virus_family(
-  file_path = "data/xml/Nimaviridae_ncbi_genbank_entry.xml",
-  family_name = "Nimaviridae"
-)
-
-
-df <- rbind(dfNV, dfBAC, dfHV, dfNimV)
+# test if file is already present
+if (file.exists(file_path)) {
+  
+  # CSV file exists; read CSV
+  df <- read.csv("output/genome genbank table/xml_imported_virus_data.csv", stringsAsFactors = FALSE)
+  print("File with genome data was successfully read.")
+  
+} else {
+  
+  # Read Baculoviridae data
+  dfBAC <- process_virus_family(
+    file_path = "data/xml/Baculoviridae_ncbi_genbank_entry.xml",
+    family_name = "Baculoviridae",
+    must_be_in_name = c("nucleopolyhedrovirus", "granulovirus", "SNPV", "nuclopolyhedrovirus",
+                        "Alphabaculovirus", "Betabaculovirus", "betabaculovirus", "NPV",
+                        "nucleopolyhedrosis", "alphabaculovirus"),
+    alpha_terms = c("nucleopolyhedrovirus", "SNPV", "nuclopolyhedrovirus", "Alphabaculovirus", 
+                    "NPV", "nucleopolyhedrosis", "alphabaculovirus"),
+    beta_terms = c("granulovirus", "Betabaculovirus", "betabaculovirus")
+  )
+  
+  
+  # Read Nudiviridae data
+  dfNV <- process_virus_family(
+    file_path = "data/xml/Nudiviridae_ncbi_genbank_entry.xml",
+    family_name = "Nudiviridae"
+  )
+  
+  
+  # Read Hytrosaviridae data
+  dfHV <- process_virus_family(
+    file_path = "data/xml/Hytrosaviridae_ncbi_genbank_entry.xml",
+    family_name = "Hytrosaviridae"
+  )
+  
+  
+  # Read Nimaviridae data
+  dfNimV <- process_virus_family(
+    file_path = "data/xml/Nimaviridae_ncbi_genbank_entry.xml",
+    family_name = "Nimaviridae"
+  )
+  
+  
+  df <- rbind(dfNV, dfBAC, dfHV, dfNimV)
+  
+  #export zu CSV file
+  write.csv(df, file = "output/genome genbank table/xml_imported_virus_data.csv", row.names = FALSE)
+  
+  
+  print("The CSV file with the genome data does not exist. The code for reading in the XML files from NCBI Genbank is being executed.")
+}
 
 print(head(df))
 ```
+
+## Visualisation of genome publications over time
 
 After the data frame has been created, the time course of the publication of the consensus sequences can be displayed with ggplot2.
 
