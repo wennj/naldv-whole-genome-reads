@@ -316,7 +316,3 @@ f <- 1.2
 file_name <- "output/NALDV_stats_on_Genbank_SRA.png"
 ggsave(file_name, combined_plot, width = 8*f, height = 3*f)
 ```
-
-# Phred Quality Score and Error Probability
-
-tbd
