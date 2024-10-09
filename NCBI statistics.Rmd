@@ -10,14 +10,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Introduction
-
-Nanopore sequencing is becoming increasingly popular for sequencing the genomes of nuclear arthropod-specific large DNA viruses (NALDV). In particular, in combination with Illumina sequencing, it provides a highly accurate method for error-free decoding of large repetitive sequence regions. As of July 2024, hundreds of genomes in the Naldaviricetes class have been published in the NCBI Genbank. These are consensus sequences based on assemblies. Nanopore sequencing makes it possible for the first time to sequence significantly large fragments of NALDV genomes. It is even conceivable that entire genomes could be sequenced in single reads, enabling assembly-free analysis of baculovirus genomes.
-
-The following script shows how to approach nanopore sequence data sets of NALDVs step by step. It demonstrates the importance of carefully examining the data to avoid subsequent errors in the analysis.
-
-Particular attention is paid to the detection of reads that may comprise entire genomes of NALDVs and represent individual viral genomes.
-
 ## Required libraries
 
 The following libraries are required to run this script.
@@ -30,8 +22,6 @@ library(patchwork)
 library(RColorBrewer)
 `%ni%` <- Negate(`%in%`)
 ```
-
-# Creating NCBI Statistics on NALDV Genome Data
 
 ## Consensus genomes published on NCBI Genbank
 
