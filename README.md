@@ -32,4 +32,4 @@ Analysing the availability of Illumina and Nanopore data sets on NCBI SRA is a b
 
 [Click here for the R code used ](https://github.com/wennj/naldv-whole-genome-reads/blob/main/output/NALDV_stats_on_Genbank_SRA.png)[to](https://github.com/wennj/naldv-whole-genome-reads/blob/main/NCBI%20statistics.Rmd)[ create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/output/NALDV_stats_on_Genbank_SRA.png)
 
-![Figure 1A and B](https://github.com/wennj/naldv-whole-genome-reads/blob/main/output/NALDV_stats_on_Genbank_SRA.png)
+![Figure 1A and B](https://github.com/wennj/naldv-whole-genome-reads/blob/main/output/NALDV_stats_on_Genbank_SRA.png "Figure 1A and B")
