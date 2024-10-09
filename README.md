@@ -2,7 +2,7 @@
 
 The figures and content in this repository are derived from the following publication:
 
-**Wennmann, J.T. (2024). Nanopore reads spanning the whole genome of arthropod-infecting large dsDNA viruses of the class Naldaviricetes enable assembly-free sequence analysis. *Journal of General Virology*, xxx xxx xxx. [DOI link to the publication]**
+**Wennmann, J.T. (2024). Nanopore reads spanning the whole genome of arthropod-infecting large dsDNA viruses of the class Naldaviricetes enable assembly-free sequence analysis. Journal of General Virology, xxx xxx xxx. [DOI link to the publication]**
 
 This work is licensed under the [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
 
@@ -32,4 +32,4 @@ Analysing the availability of Illumina and Nanopore data sets on NCBI SRA is a b
 
 [Click here for the R code used ](https://github.com/wennj/naldv-whole-genome-reads/blob/main/output/NALDV_stats_on_Genbank_SRA.png)[to](https://github.com/wennj/naldv-whole-genome-reads/blob/main/NCBI%20statistics.Rmd)[ create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/output/NALDV_stats_on_Genbank_SRA.png)
 
-![Figure 1A and B](https://github.com/wennj/naldv-whole-genome-reads/blob/main/output/NALDV_stats_on_Genbank_SRA.png "Figure 1A and B")
+![Figure 1A and B](https://github.com/wennj/naldv-whole-genome-reads/blob/main/output/NALDV_stats_on_Genbank_SRA.png)
