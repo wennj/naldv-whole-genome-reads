@@ -30,4 +30,10 @@ Analysing the availability of Illumina and Nanopore data sets on NCBI SRA is a b
 
 [Click here for the R code used to create the figure.](NCBI_statistics.Rmd)
 
-![](output/NALDV_stats_on_Genbank_SRA.png)
+![](output/ncbi_stats/NALDV_stats_on_Genbank_SRA.png)
+
+## Read length distribution
+
+![](output/read_length_distribution/length_distribution1.png){width="400"}
+
+![](output/read_length_distribution/length_distribution2.png){width="400"}
