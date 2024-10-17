@@ -1,0 +1,619 @@
+---
+title: "Read length and quality analysis"
+author: "Jörg Wennmann"
+date: "2024-10-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Required Libraries
+
+```{r include=FALSE}
+library(ggplot2)
+library(ggrepel)
+library(ShortRead)
+library(RColorBrewer)
+library(patchwork)
+library(ggrepel)
+```
+
+# Required Functions
+
+```{r}
+phred_to_probability <- function(phred_scores) {
+  probabilities <- 10^(-phred_scores / 10)
+  probabilities <- 1-probabilities
+  return(probabilities)
+}
+
+probability_to_phred <- function(probability) {
+  phred_score <- -10 * log10(1 - probability)
+  return(phred_score)
+}
+
+meanPhredScore <- function(qualities) {
+  scores <- as.numeric(charToRaw(as.character(qualities))) - 33
+  probabilities <- phred_to_probability(scores)
+  probabilities <- mean(probabilities)
+  scores <- probability_to_phred(probabilities)
+  
+  return(scores)
+}
+
+# Funktion zum Verarbeiten einer einzelnen FASTQ-Datei
+process_fastq_file <- function(file_path) {
+    fq <- readFastq(file_path)
+    
+    read_names <- as.character(id(fq))
+    sequences <- sread(fq)
+    qualities <- quality(fq)@quality
+    
+    read_lengths <- width(sequences)
+    mean_quality_scores <- sapply(qualities, meanPhredScore)
+    
+    # Datei-Name ohne Suffix nach dem Punkt als Identifier
+    iso_identifier <- sub("\\..*$", "", basename(file_path))
+    
+    data <- data.frame(
+        Read_Name = read_names,
+        Read_Length = read_lengths,
+        Mean_Quality_Score = mean_quality_scores,
+        Mean_Quality_Probability = phred_to_probability(mean_quality_scores),
+        ISO = iso_identifier
+    )
+    
+    return(data)
+}
+```
+
+
+# Nanopore WSSV
+
+## Input data
+
+### BmNPV + OrNV
+
+```{r}
+# Pfad zur Ausgabe-Datei
+input_file <- "data/read_length_quality/read_length_quality_df.csv"
+
+# Überprüfen, ob die Datei bereits existiert
+if (!file.exists(input_file)) {
+    # Ordner mit den FASTQ-Dateien
+    fastq_folder <- "input/raw reads"
+    
+    # Liste der FASTQ-Dateien im Ordner
+    fastq_files <- list.files(fastq_folder, pattern = "\\.fastqsanger$", full.names = TRUE)
+    
+    # Initialisieren des Dataframes
+    data <- data.frame()
+    
+    # Verarbeiten jeder Datei im Ordner und Hinzufügen der Ergebnisse zum Dataframe
+    for (file in fastq_files) {
+        file_data <- process_fastq_file(file)
+        data <- rbind(data, file_data)
+    }
+    
+    # Ausgabe des Dataframes
+    print(data)
+    
+    # Speichern des Dataframes in einer CSV-Datei
+    write.csv(data, input_file, row.names = FALSE)
+} else {
+    # Einlesen der vorhandenen CSV-Datei
+    data <- read.csv(input_file)
+    print("The input file already exists and has been read.")
+    print(data)
+}
+```
+### Combine read length data
+
+```{r}
+data$ISO <- gsub("^Th2$", "Nanopore: BmNPV-Th2", data$ISO)
+data$ISO <- gsub("^Th15$", "Nanopore: BmNPV-Th15", data$ISO)
+data$ISO <- gsub("^SRR21977634$", "Nanopore: OrNV-DUG42", data$ISO)
+data$ISO <- gsub("^DRR420912_ref_CN01_filtered$", "Nanopore: WSSV-JP04", data$ISO)
+
+
+data$ISO <- factor(data$ISO, levels = c("Nanopore: BmNPV-Th2", "Nanopore: BmNPV-Th15","Nanopore: OrNV-DUG42", "Nanopore: WSSV-JP04"))
+
+data <- subset(data, ISO %in% c("Nanopore: BmNPV-Th2", "Nanopore: OrNV-DUG42", "Nanopore: WSSV-JP04"))
+```
+
+## Read length
+
+### Split in two plots
+
+```{r}
+# Daten aufteilen
+sep <- 60000
+
+data_small <- subset(data, Read_Length < sep)
+data_large <- subset(data, Read_Length >= sep)
+
+# Gemeinsame Parameter
+alpha <- 0.8
+
+iso1Col <- brewer.pal(9, "Blues")[5]
+iso2Col <- brewer.pal(9, "Greens")[5]
+iso3Col <- c("#BC80BD")
+
+fills <- c(iso1Col, iso2Col, iso3Col)
+
+cols <- rep("black", length(unique(data$ISO))) 
+binwidth <- 1000
+
+# Plot für Reads bis 60.000
+p1 <- ggplot(data_small) + 
+  geom_histogram(aes(x = Read_Length, weight = Read_Length, fill = ISO, color = ISO), 
+                 linewidth = 0.2, binwidth = binwidth, alpha = alpha) +
+  scale_x_continuous(expand = c(0, 0),
+                     breaks = seq(0, sep, by = 5000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     limits = c(0, 30000000),
+                     breaks = seq(0, 30000000, by = 2500000),
+                     labels = seq(0, 30, by = 2.5)) +
+  scale_fill_manual(values = alpha(fills, alpha)) +
+  scale_color_manual(values = cols) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.7, 0.7),
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Total Bases (Mb)") +
+  xlab("Read Length (nt)")
+
+# Plot für Reads >= 60.000
+p2 <- ggplot(data_large) + 
+  geom_histogram(aes(x = Read_Length, weight = Read_Length, fill = ISO, color = ISO), 
+                 linewidth = 0.2, binwidth = binwidth, alpha = alpha) +
+  scale_x_continuous(expand = c(0, 0),
+                     breaks = seq(sep, 185000, by = 10000),
+                     limits = c(sep,185000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     limits = c(0, 800000),
+                     breaks = seq(0, 800000, by = 100000),
+                     labels = seq(0, 0.8, by = 0.1)) +
+  scale_fill_manual(values = alpha(fills, alpha)) +
+  scale_color_manual(values = cols) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Total Bases (Mb)") +
+  xlab("Read Length (nt)")
+
+# Plots anzeigen
+print(p1)
+print(p2)
+
+# Plots speichern
+f <- 2
+
+ggsave(plot = p1, filename = "output/read_length_distribution/length_distribution1.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+ggsave(plot = p2, filename = "output/read_length_distribution/length_distribution2.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+```
+
+#------ STOPPED HERE --------
+
+## Read Quality Distribution
+
+```{r}
+Qwssv <- subset(data, ISO == "Nanopore: WSSV-JP04")
+
+alpha <- 1
+# Calculate medians for each ISO group
+medians_wssv <- aggregate(Mean_Quality_Score ~ ISO, Qwssv, median)
+medians_wssv$Mean_Quality_Score <- round(medians_wssv$Mean_Quality_Score, 1)
+
+#x axis breaks and labels
+
+data_iso3 <- Qwssv
+
+# Create the histogram with customized axis labels-------------------------
+max_x <- ceiling(max(data_iso3$Mean_Quality_Score) / 5) * 5
+max_x <- 30
+xbreaks <- sort(c(seq(0, max_x, by = 5), medians_wssv$Mean_Quality_Score[1], 14))
+xbreaks <- xbreaks[xbreaks != 15]
+xlabels <- sprintf("%.1f", xbreaks)
+
+pQja04 <- ggplot() +
+  geom_histogram(data = data_iso3, aes(x = Mean_Quality_Score), 
+                 fill = "#BC80BD",
+                 linewidth = 0.2, 
+                 binwidth = 1, 
+                 color = "black", 
+                 position = "identity", 
+                 alpha = alpha) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Frequency") +
+  xlab("Median Read Quality Score (Q)") +
+  scale_x_continuous(breaks = sort(xbreaks, decreasing = F),
+                     labels = xlabels,
+                     limits = c(0, max_x)) +
+  scale_y_continuous(expand = c(0,0),
+                     breaks = seq(0, 5000, by = 500), 
+                     limits = c(0, 5000)) +
+  geom_vline(aes(xintercept = medians_wssv$Mean_Quality_Score[1]), linetype = "dashed", color = "black")
+
+# Plot speichern
+f <- 2
+
+ggsave(plot = pQja04, filename = "output/read_quality_distribution_WSSV.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+
+print(pQja04)
+```
+
+## Read Length vs Quality
+
+```{r}
+thrQ3 <- medians_wssv$Mean_Quality_Score[1]
+
+thrCol <- "black"
+
+wssv_full <- 301054 #AP027282.1 JP04
+wssv_half <- wssv_full/2
+xbreaks <- c(0, 20000, 40000, 60000, 
+80000, 100000, 120000, wssv_half, 171438, 180000)
+
+ybreaks <- sort(c(seq(0, 25, by = 5), thrQ3, 14))
+ybreaks <- ybreaks[ybreaks != 15]
+
+pLQja04 <- ggplot(data_iso3, aes(x = Read_Length, y = Mean_Quality_Score)) +
+  #geom_vline(xintercept = wssv_full, linetype = "dashed", color = thrCol) +  # Vertikale Linie bei 60000
+  geom_point(aes(color = (Read_Length > wssv_half & Mean_Quality_Score > thrQ3)), alpha = 0.6) +
+  scale_color_manual(values = c("TRUE" = "orange", "FALSE" = "#BC80BD")) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Median Read Quality Score (Q)") +
+  xlab("Read Length (nt)") +
+  scale_x_continuous(expand = c(0,0),
+                     #breaks = seq(0, 130000, by = 10000),
+                     breaks = xbreaks,
+                     limits = c(0, 175000)) +
+  scale_y_continuous(expand = c(0,0),
+                     #breaks= sort(c(seq(0, 25, by = 5), thrQ3)), 
+                     breaks = ybreaks,
+                     limits = c(0, 25)) +
+  geom_vline(xintercept = wssv_half, linetype = "dashed", color = thrCol) +  # Vertikale Linie bei 60000
+  geom_hline(yintercept = thrQ3, linetype = "dashed", color = thrCol)  # Horizontale Linie bei 20
+  
+
+# Plots speichern
+f <- 2
+
+ggsave(plot = pLQja04, filename = "output/read length vs quality_WSSV.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+print(pLQja04)
+```
+
+#------------------------
+
+# PacBio
+
+## Plot AcMNPV filtered reads
+
+```{r}
+# Daten einlesen
+data <- read.delim("input/read length stats from Galaxy (PacBio)/AcMNPV filtred pacbio read length.tabular", sep = "\t", header = FALSE)
+
+colnames(data) <- c("Read_Name", "Read_Length")
+
+cutlength <- 50000
+
+# Daten aufteilen
+data_small <- subset(data, Read_Length < cutlength)
+data_large <- subset(data, Read_Length >= cutlength)
+
+# Gemeinsame Parameter
+alpha <- 0.7
+fills <- "firebrick1"
+cols <- "black"
+binwidth <- 1000
+
+# Plot für Reads bis 60.000
+pPB1 <- ggplot(data_small) + 
+  geom_histogram(aes(x = Read_Length, weight = Read_Length, fill = fills), color = cols,
+                 linewidth = 0.2, binwidth = binwidth, alpha = alpha) +
+  scale_x_continuous(expand = c(0, 0),
+                     breaks = seq(0, cutlength, by = 5000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     limits = c(0, 1750000000),
+                     breaks = seq(0, 1750000000, by = 250000000),
+                     labels = seq(0, 17.5, by = 2.5)) +
+  scale_fill_manual(values = alpha(fills, alpha), labels = "PacBio: AcMNPV-WP10") +
+  scale_color_manual(values = cols) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.7, 0.9),
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Total Bases (Gb)") +
+  xlab("Read Length (nt)")
+
+
+
+# Plot für Reads >= 60.000
+last_bin_end <- max(data_large$Read_Length)
+
+pPB2 <- ggplot(data_large) + 
+  geom_histogram(aes(x = Read_Length, weight = Read_Length, fill = fills), color = cols,
+                 linewidth = 0.2, binwidth = binwidth, alpha = alpha) +
+  scale_x_continuous(expand = c(0, 0),
+                     limits = c(cutlength, 87500),
+                     breaks = seq(cutlength, 85000, by = 5000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     limits = c(0, 7000000),
+                     breaks = seq(0, 7000000, by = 1000000),
+                     labels = seq(0, 7, by = 1)) +
+  scale_fill_manual(values = alpha(fills, alpha)) +
+  scale_color_manual(values = cols) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Total Bases (Mb)") +
+  xlab("Read Length (nt)")
+  #annotate("text", x = last_bin_end - binwidth/2, y = 200000, label = "*", size = 8, color = "black", vjust = 0.05, hjust = 0.5)
+
+# Plots anzeigen
+print(pPB1)
+print(pPB2)
+
+# Plots speichern
+f <- 2
+
+ggsave(plot = pPB1, filename = "output/read_length_distribution_small_PB_filtered.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+ggsave(plot = pPB2, filename = "output/read_length_distribution_large_PB_filtered.png",  
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+
+
+combined_plot <- (pPB1 + pPB2) + plot_annotation(tag_levels = 'A')
+
+# Anzeige des kombinierten Plots
+print(combined_plot)
+
+f <- 1.2
+
+# Speichern des kombinierten Plots
+ggsave("output/PacBio read length.png", combined_plot, width = 8*f, height = 3*f)
+ggsave("output/PacBio read length.pdf", combined_plot, width = 8*f, height = 3*f)
+```
+
+#------------------------
+
+# Combine all plots for publication
+
+## BmNPV and OrNV
+
+```{r}
+combined_plot <- (p1 + p2) / (pQ1 + pQ2) / (pLQ1 + pLQ2) + plot_annotation(tag_levels = 'A')
+
+# Anzeige des kombinierten Plots
+print(combined_plot)
+
+f <- 1.2
+# Speichern des kombinierten Plots als PDF
+ggsave("output/combined_plot.png", combined_plot, width = 8*f, height = 9*f) 
+ggsave("output/combined_plot.pdf", combined_plot, width = 8*f, height = 9*f) 
+```
+
+## BmNPV, OrNV and PacBio
+
+```{r}
+combined_plot <- (p1 + p2) / (pQ1 + pQ2) / (pLQ1 + pLQ2) / (pPB1 + pPB2) +
+  plot_annotation(tag_levels = 'A')
+
+# Anzeige des kombinierten Plots
+print(combined_plot)
+
+f <- 1.2
+# Speichern des kombinierten Plots als PDF
+ggsave("output/combined_plot_plus_PB.png", combined_plot, width = 8*f, height = 10*f) 
+ggsave("output/combined_plot_plus_PB.png", combined_plot, width = 8*f, height = 10*f) 
+# Anzeige des kombinierten Plots
+print(combined_plot)
+```
+
+## Complete combination
+
+```{r}
+combined_plot <- (p1wssv + p2wssv) / (pQ1 + pQ2 + pQja04) / (pLQ1 + pLQ2 + pLQja04) / (pPB1 + pPB2) +
+  plot_annotation(tag_levels = 'A')
+
+# Anzeige des kombinierten Plots
+print(combined_plot)
+
+f <- 1.2
+# Speichern des kombinierten Plots als PDF
+ggsave("output/combined_plot_plus_WSSV_PB.png", combined_plot, width = 8*f, height = 10*f) 
+```
+
+#------------------------
+
+# Illumina
+
+## Input Illumina reads (random subset)
+
+
+```{r}
+# Ordner mit den FASTQ-Dateien
+fastq_folder <- "input/raw reads/Illumina 10000 random subsample"
+# Liste der FASTQ-Dateien im Ordner
+fastq_files <- list.files(fastq_folder, pattern = "\\.fastqsanger$", full.names = TRUE)
+# Initialisieren des Dataframes
+data_ILL <- data.frame()
+# Verarbeiten jeder Datei im Ordner und Hinzufügen der Ergebnisse zum Dataframe
+for (file in fastq_files) {
+  file_data <- process_fastq_file(file)
+  data_ILL <- rbind(data_ILL, file_data)
+}
+
+# Ordner mit den FASTQ-Dateien
+fastq_folder <- "input/raw reads/ONT PaviNPV reads"
+# Liste der FASTQ-Dateien im Ordner
+fastq_files <- list.files(fastq_folder, pattern = "\\.fastqsanger$", full.names = TRUE)
+# Initialisieren des Dataframes
+data_pavi <- data.frame()
+# Verarbeiten jeder Datei im Ordner und Hinzufügen der Ergebnisse zum Dataframe
+for (file in fastq_files) {
+  file_data <- process_fastq_file(file)
+  data_pavi <- rbind(data_pavi, file_data)
+}
+data_pavi <- data_pavi[sample(1:dim(data_pavi)[1], 10000), ]
+
+data_ONT <- read.csv(file = "output/read length and quality table/read_length_quality_df.csv")
+data_ONT <- data_ONT[sample(1:dim(data_ONT)[1], 10000), ]
+data_ONT <- subset(data_ONT, ISO == "Th2")
+
+
+print(head(data_ILL))
+print(head(data_ONT))
+print(head(data_pavi))
+
+print(data_OntIll <- rbind(data_ILL, data_ONT, data_pavi))
+
+print(unique(data_OntIll$ISO))
+```
+
+
+```{r}
+library(ggplot2)
+library(ggrepel)
+
+# Daten für die Kurve erstellen und daraus einen Dataframe
+all_phred_scores <- 0:40
+all_error_probabilities <- phred_to_probability(all_phred_scores)
+data_all <- data.frame(Phred=all_phred_scores, ErrorProbability=all_error_probabilities)
+
+# Manuelle Y-Achsen-Beschriftungen
+y_breaks <- c(1, 0.1, 0.01, 0.001, 0.0001)
+y_labels <- c("100%", "10%", "1%", "0.1%", "0.01%")
+
+# Mittelwerte für jedes ISO berechnen ohne dplyr
+isos <- unique(data_OntIll$ISO)
+mean_quality_scores <- sapply(isos, function(iso) {
+  mean(data_OntIll$Mean_Quality_Score[data_OntIll$ISO == iso])
+})
+mean_quality_probabilities <- phred_to_probability(mean_quality_scores)
+
+LAB <- c("2015: AcMNPV-WP10 (SRR1118212)\nIllumina Genome Analyzer IIx",
+         "2024: BmNPV-Th2 (SRR25338386)\nIllumina NextSeq500", 
+         "2024: HearNPV-IIPR05 (SRR21146807)\nIllumina HiSeq2500", 
+         "2024: OpbuNPV (SRR27473752)\nIllumina MiSeq", 
+         "2024: BmNPV-Th2 (SRR27030578)\nONT Rapid Ligation Kit", 
+         "2023: PaviNPV-Gz05 (SRR17312069)\nONT Ligation Kit"
+         )
+
+data_means <- data.frame(ISO = isos, 
+                         Mean_Quality_Score = mean_quality_scores, 
+                         Mean_Quality_Probability = mean_quality_probabilities,
+                         LAB)
+
+data_means$LAB <- factor(data_means$LAB, levels = c(
+                                                    "2024: BmNPV-Th2 (SRR27030578)\nONT Rapid Ligation Kit", 
+                                                    "2023: PaviNPV-Gz05 (SRR17312069)\nONT Ligation Kit",
+                                                    "2015: AcMNPV-WP10 (SRR1118212)\nIllumina Genome Analyzer IIx",
+                                                    "2024: BmNPV-Th2 (SRR25338386)\nIllumina NextSeq500", 
+                                                    "2024: HearNPV-IIPR05 (SRR21146807)\nIllumina HiSeq2500", 
+                                                    "2024: OpbuNPV (SRR27473752)\nIllumina MiSeq"
+                                                    ))
+custom_colors <- brewer.pal(length(LAB), "Purples")
+
+x_offsets <- c(4, -4, 2, 3.5, -4.5)
+y_offsets <- c(0.002, -0.00055, 0.0005, 0.09, -0.02)
+
+# Plot erstellen
+pQP <- ggplot() +
+  geom_line(data = data_all, aes(x = Phred, y = 1-ErrorProbability), color="darkblue") +
+  #geom_point(data = data_OntIll, aes(x = Mean_Quality_Score, y = 1-Mean_Quality_Probability, colour = ISO), 
+  #           shape=4, size=3) +
+  geom_point(data = data_means, aes(x = Mean_Quality_Score, y = 1 - Mean_Quality_Probability, fill = LAB), 
+             shape=22, size=4, colour="black", stroke = 0.2) +
+  geom_segment(aes(x = 20, y = 0.01, xend = 0, yend = 0.01), 
+               linetype = "dotted", color = "black") + #HL
+  geom_segment(aes(x = 20, y = 0.01, xend = 20, yend = 0.0001), 
+               linetype = "dotted", color = "black") + #VL
+  scale_y_log10(expand = c(0,0), breaks = y_breaks, labels = y_labels) +
+  #geom_text(data = data_means, aes(x = Mean_Quality_Score + x_offsets, 
+  #                                       y = 1 - Mean_Quality_Probability + y_offsets, 
+  #                                       label = LAB), 
+  #                size = 2, segment.color = 'grey50') +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_fill_manual(values = custom_colors) +
+  labs(x="Phred Quality Score (Q)",
+       y="Error Probability (%)") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "right", # Setzen Sie die Position der Legende
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8),
+        legend.key.height = unit(1.5, "lines"), # Abstand zwischen den Legendenbeschriftungen
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) 
+
+
+# Plots speichern
+f <- 2
+
+ggsave(plot = pQP, filename = "output/phred vs probability.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 9 * f, 
+       height = 5 * f)
+
+print(pQP)
+```
+
+
+
