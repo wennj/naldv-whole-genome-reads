@@ -40,4 +40,18 @@ To determine the length of nanopore reads from a sequencing run, it is best to c
 
 ![](output/read_length_distribution/length_distribution_combined.png)
 
-\<under construction\>
+## Read quality distribution
+
+tdb
+
+[Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/2_length_quality_statistics.Rmd)
+
+![](output/read_quality_distribution/read_quality_distribution_combined.png)
+
+## Read length and quality comparison
+
+tbd
+
+[Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/2_length_quality_statistics.Rmd)
+
+![](output/read_length_vs_quality/read_length_vs_quality_combined.png)

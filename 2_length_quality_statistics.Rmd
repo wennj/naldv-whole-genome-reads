@@ -76,11 +76,9 @@ process_fastq_file <- function(file_path) {
 ```
 
 
-# Nanopore WSSV
-
 ## Input data
 
-### BmNPV + OrNV
+### BmNPV + OrNV + WSSV
 
 ```{r}
 # Pfad zur Ausgabe-Datei
@@ -223,30 +221,97 @@ ggsave("output/read_length_distribution/length_distribution_combined.png", combi
 
 ```
 
-#------ STOPPED HERE --------
-
-## Read Quality Distribution
+# Read Quality Distribution
 
 ```{r}
-Qwssv <- subset(data, ISO == "Nanopore: WSSV-JP04")
-
-alpha <- 1
+alpha <- 0.8
 # Calculate medians for each ISO group
-medians_wssv <- aggregate(Mean_Quality_Score ~ ISO, Qwssv, median)
-medians_wssv$Mean_Quality_Score <- round(medians_wssv$Mean_Quality_Score, 1)
+medians <- aggregate(Mean_Quality_Score ~ ISO, data, median)
+medians$Mean_Quality_Score <- round(medians$Mean_Quality_Score, 1)
 
-#x axis breaks and labels
 
-data_iso3 <- Qwssv
+#> unique(data$ISO)
+#[1] Nanopore: OrNV-DUG42 Nanopore: BmNPV-Th2  Nanopore: WSSV-JP04 
+#Levels: Nanopore: BmNPV-Th2 Nanopore: BmNPV-Th15 Nanopore: OrNV-DUG42 Nanopore: WSSV-JP04
+data_iso1 <- subset(data, ISO == unique(data$ISO)[2])
+data_iso2 <- subset(data, ISO == unique(data$ISO)[1])
+data_iso3 <- subset(data, ISO == unique(data$ISO)[3])
+
+# Create the histogram with customized axis labels-------------------------
+max_x <- ceiling(max(data_iso1$Mean_Quality_Score) / 5) * 5
+max_x <- 30
+xbreaks <- sort(c(seq(0, max_x, by = 5), medians$Mean_Quality_Score[1], 9))
+xbreaks <- xbreaks[xbreaks != 10]
+xlabels <- sprintf("%.1f", xbreaks)
+
+pQ1 <- ggplot() +
+  geom_histogram(data = data_iso1, aes(x = Mean_Quality_Score), 
+                 fill = brewer.pal(9, "Blues")[5],
+                 linewidth = 0.2, 
+                 binwidth = 1, 
+                 color = "black", 
+                 position = "identity", 
+                 alpha = alpha) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Frequency") +
+  xlab("Median Read Quality Score (Q)") +
+  scale_x_continuous(breaks = sort(xbreaks, decreasing = F),
+                     labels = xlabels,
+                     limits = c(0, max_x)) +
+  scale_y_continuous(expand = c(0,0),
+                     breaks = seq(0, 3000, by = 500), 
+                     limits = c(0, 3000)) +
+  geom_vline(aes(xintercept = medians$Mean_Quality_Score[1]), 
+             linetype = "dashed", color = "black")
+
+
+
+# Create the histogram with customized axis labels-------------------------
+max_x <- 30
+xbreaks <- sort(c(seq(0, max_x, by = 5), medians$Mean_Quality_Score[2]))
+xbreaks <- xbreaks[xbreaks != 15]
+xlabels <- sprintf("%.1f", xbreaks)
+
+pQ2 <- ggplot() +
+  geom_histogram(data = data_iso2, aes(x = Mean_Quality_Score), 
+                 fill = brewer.pal(9, "Greens")[5],
+                 linewidth = 0.2, 
+                 binwidth = 1, 
+                 color = "black", 
+                 position = "identity", 
+                 alpha = alpha) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Frequency") +
+  xlab("Median Read Quality Score (Q)") +
+  scale_x_continuous(breaks = sort(xbreaks, decreasing = F),
+                     labels = xlabels,
+                     limits = c(0, max_x)) +
+  scale_y_continuous(expand = c(0,0),
+                     breaks = seq(0, 10000, by = 1000), 
+                     limits = c(0, 10000)) +
+  geom_vline(aes(xintercept = medians$Mean_Quality_Score[2]), 
+             linetype = "dashed", color = "black")
+
+
 
 # Create the histogram with customized axis labels-------------------------
 max_x <- ceiling(max(data_iso3$Mean_Quality_Score) / 5) * 5
 max_x <- 30
-xbreaks <- sort(c(seq(0, max_x, by = 5), medians_wssv$Mean_Quality_Score[1], 14))
+xbreaks <- sort(c(seq(0, max_x, by = 5), medians$Mean_Quality_Score[3], 14))
 xbreaks <- xbreaks[xbreaks != 15]
 xlabels <- sprintf("%.1f", xbreaks)
 
-pQja04 <- ggplot() +
+pQ3 <- ggplot() +
   geom_histogram(data = data_iso3, aes(x = Mean_Quality_Score), 
                  fill = "#BC80BD",
                  linewidth = 0.2, 
@@ -268,29 +333,130 @@ pQja04 <- ggplot() +
   scale_y_continuous(expand = c(0,0),
                      breaks = seq(0, 5000, by = 500), 
                      limits = c(0, 5000)) +
-  geom_vline(aes(xintercept = medians_wssv$Mean_Quality_Score[1]), linetype = "dashed", color = "black")
+  geom_vline(aes(xintercept = medians$Mean_Quality_Score[3]), linetype = "dashed", color = "black")
 
-# Plot speichern
+
+
+# saving Plots
 f <- 2
 
-ggsave(plot = pQja04, filename = "output/read_quality_distribution/read_quality_distribution_WSSV.png", 
+ggsave(plot = pQ1, filename = "output/read_quality_distribution/read_quality_distribution_Th2.png", 
        units = "cm", 
        dpi = 300, 
        width = 6 * f, 
        height = 5 * f)
 
+ggsave(plot = pQ2, filename = "output/read_quality_distribution/read_quality_distribution_OrNV.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
 
-print(pQja04)
+ggsave(plot = pQ3, filename = "output/read_quality_distribution/read_quality_distribution_WSSV.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+combined_plot <- (pQ1 + pQ2 + pQja04) +
+  plot_annotation(tag_levels = 'A')
+
+# Anzeige des kombinierten Plots
+print(combined_plot)
+
+f <- 0.8
+# Speichern des kombinierten Plots als PDF
+ggsave("output/read_quality_distribution/read_quality_distribution_combined.png", combined_plot, width = 12*f, height = 5*f)
 ```
 
-## Read Length vs Quality
+# Read Length vs Quality (stopped here)
+
 
 ```{r}
-thrQ3 <- medians_wssv$Mean_Quality_Score[1]
+thrQ1 <- medians$Mean_Quality_Score[1]
+thrQ2 <- medians$Mean_Quality_Score[2]
+thrQ3 <- medians$Mean_Quality_Score[3]
 
 thrCol <- "black"
 
-wssv_full <- 301054 #AP027282.1 JP04
+#Rechteck um Genome
+top4 <- data_iso1[order(-data_iso1$Read_Length), ][1:4, ]
+# Grenzen für das Rechteck berechnen
+rect_xmin1 <- min(top4$Read_Length) - 2500
+rect_xmax1 <- max(top4$Read_Length) + 2500
+rect_ymin1 <- min(top4$Mean_Quality_Score) - 0.8
+rect_ymax1 <- max(top4$Mean_Quality_Score) + 0.8
+
+th2_half <- 63287.5
+th2_full <- th2_half*2
+xbreaks <- c(0, 10000, 20000, 30000, 40000, 50000, 63288,
+            80000, 90000, 1e+05, 110000, 126575)
+
+pLQ1 <- ggplot(data_iso1, aes(x = Read_Length, y = Mean_Quality_Score)) +
+  geom_vline(xintercept = th2_full, linetype = "dotted", color = thrCol) +  # Vertikale Linie bei 60000
+  geom_point(aes(color = (Read_Length > th2_half & Mean_Quality_Score > thrQ1)), alpha = 0.6) +
+  scale_color_manual(values = c("TRUE" = "orange", "FALSE" = iso1Col)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Median Read Quality Score (Q)") +
+  xlab("Read Length (nt)") +
+  scale_x_continuous(expand = c(0,0),
+                     #breaks = seq(0, 130000, by = 10000),
+                     breaks = xbreaks,
+                     limits = c(0, 140000)) +
+  scale_y_continuous(expand = c(0,0),
+                     breaks= sort(c(seq(0, 20, by = 5), thrQ1)), 
+                     limits = c(0, 20)) +
+  geom_vline(xintercept = th2_half, linetype = "dashed", color = thrCol) +
+  geom_hline(yintercept = thrQ1, linetype = "dashed", color = thrCol) + 
+  geom_rect(aes(xmin = rect_xmin1, xmax = rect_xmax1, ymin = rect_ymin1, ymax = rect_ymax1), 
+            color = "black", fill = NA, size = 0.25)
+
+
+#Rechteck um Genome
+topNV <- data_iso2[order(-data_iso2$Read_Length), ][4:10, ]
+# Grenzen für das Rechteck berechnen
+rect_xmin2 <- min(topNV$Read_Length) - 2500
+rect_xmax2 <- max(topNV$Read_Length) + 2500
+rect_ymin2 <- min(topNV$Mean_Quality_Score) - 0.8
+rect_ymax2 <- max(topNV$Mean_Quality_Score) + 0.8
+
+dug42_half <- 62939.5
+dug42_full <- dug42_half*2
+xbreaks <- round(c(0, 20000, 40000, dug42_half, 80000, 1e+05, dug42_full, 140000, 160000, 
+180769), digits = 0)
+
+ybreaks <- sort(c(seq(5, 30, by = 5), thrQ2))
+ybreaks <- ybreaks[ybreaks != 15]
+
+
+pLQ2 <- ggplot(data_iso2, aes(x = Read_Length, y = Mean_Quality_Score)) +
+  geom_point(aes(color = (Read_Length > dug42_half & Mean_Quality_Score > thrQ2)), alpha = 0.6) +
+  scale_color_manual(values = c("TRUE" = "orange", "FALSE" = iso2Col)) +
+  geom_vline(xintercept = dug42_full, linetype = "dotted", color = thrCol) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Median Read Quality Score (Q)") +
+  xlab("Read Length (nt)") +
+  scale_x_continuous(expand = c(0,0),
+                     breaks = xbreaks,
+                     limits = c(0, 190000)) +
+  scale_y_continuous(expand = c(0,0),
+                     breaks= ybreaks,
+                     limits = c(5, 30)) +
+  geom_vline(xintercept = dug42_half, linetype = "dashed", color = thrCol) +  
+  geom_hline(yintercept = thrQ2, linetype = "dashed", color = thrCol) + 
+  geom_rect(aes(xmin = rect_xmin2, xmax = rect_xmax2, ymin = rect_ymin2, ymax = rect_ymax2), 
+            color = "black", fill = NA, size = 0.25)  # Rechteck um alle vier Punkte
+
+
+wssv_full <- 301054
 wssv_half <- wssv_full/2
 xbreaks <- c(0, 20000, 40000, 60000, 
 80000, 100000, 120000, wssv_half, 171438, 180000)
@@ -298,9 +464,9 @@ xbreaks <- c(0, 20000, 40000, 60000,
 ybreaks <- sort(c(seq(0, 25, by = 5), thrQ3, 14))
 ybreaks <- ybreaks[ybreaks != 15]
 
-pLQja04 <- ggplot(data_iso3, aes(x = Read_Length, y = Mean_Quality_Score)) +
-  #geom_vline(xintercept = wssv_full, linetype = "dashed", color = thrCol) +  # Vertikale Linie bei 60000
-  geom_point(aes(color = (Read_Length > wssv_half & Mean_Quality_Score > thrQ3)), alpha = 0.6) +
+pLQ3 <- ggplot(data_iso3, aes(x = Read_Length, y = Mean_Quality_Score)) +
+  geom_point(aes(color = (Read_Length > wssv_half & Mean_Quality_Score > thrQ3)), 
+             alpha = 0.6) +
   scale_color_manual(values = c("TRUE" = "orange", "FALSE" = "#BC80BD")) +
   theme_bw() +
   theme(panel.grid.major = element_blank(),
@@ -317,27 +483,47 @@ pLQja04 <- ggplot(data_iso3, aes(x = Read_Length, y = Mean_Quality_Score)) +
                      #breaks= sort(c(seq(0, 25, by = 5), thrQ3)), 
                      breaks = ybreaks,
                      limits = c(0, 25)) +
-  geom_vline(xintercept = wssv_half, linetype = "dashed", color = thrCol) +  # Vertikale Linie bei 60000
-  geom_hline(yintercept = thrQ3, linetype = "dashed", color = thrCol)  # Horizontale Linie bei 20
-  
+  geom_vline(xintercept = wssv_half, linetype = "dashed", color = thrCol) +  
+  geom_hline(yintercept = thrQ3, linetype = "dashed", color = thrCol)  
 
 # Plots speichern
 f <- 2
 
-ggsave(plot = pLQja04, filename = "output/read length vs quality_WSSV.png", 
+ggsave(plot = pLQ1, filename = "output/read_length_vs_quality/read_length_vs_quality_Th2.png", 
        units = "cm", 
        dpi = 300, 
        width = 6 * f, 
        height = 5 * f)
 
-print(pLQja04)
+ggsave(plot = pLQ2, filename = "output/read_length_vs_quality/read_length_vs_quality_OrNV.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+ggsave(plot = pLQ3, filename = "output/read_length_vs_quality/read_length_vs_quality_WSSV.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+
+
+combined_plot <- (pLQ1 + pLQ2 + pLQ3) +
+  plot_annotation(tag_levels = 'A')
+
+# Anzeige des kombinierten Plots
+print(combined_plot)
+
+f <- 0.8
+# Speichern des kombinierten Plots als PDF
+ggsave("output/read_length_vs_quality/read_length_vs_quality_combined.png", combined_plot, width = 12*f, height = 5*f)
+
 ```
 
-#------------------------
+#stopped here######
 
-# PacBio
-
-## Plot AcMNPV filtered reads
+# PacBio read length
 
 ```{r}
 # Daten einlesen
