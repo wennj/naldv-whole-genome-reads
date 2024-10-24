@@ -2,7 +2,7 @@
 
 The figures and content in this repository are derived from the following publication:
 
-**Wennmann, J.T. (submitted). Nanopore reads spanning the whole genome of arthropod-infecting large dsDNA viruses of the class Naldaviricetes enable assembly-free sequence analysis. Journal of General Virology, xxx xxx xxx. [DOI link to the publication]**
+**Wennmann, J.T. (submitted). Nanopore reads spanning the whole genome of arthropod-infecting large dsDNA viruses of the class Naldaviricetes enable assembly-free sequence analysis. [DOI link to the publication]**
 
 ## Aim of this repository
 
@@ -34,6 +34,10 @@ Analysing the availability of Illumina and Nanopore data sets on NCBI SRA is a b
 
 ## Read length distribution
 
-![](output/read_length_distribution/length_distribution1.png){width="400"}
+To determine the length of nanopore reads from a sequencing run, it is best to create a distribution of sequenced DNA fragments. In the present example, three data sets of BmNPV-Th2 (family Baculoviridae), OrNV-DUG42 (family Nudiviridae) and WSSV-JP04 (family Nimaviridae) were analysed with regard to their length distribution.
 
-![](output/read_length_distribution/length_distribution2.png){width="400"}
+[Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/2_length_quality_statistics.Rmd)
+
+![](output/read_length_distribution/length_distribution_combined.png)
+
+\<under construction\>
