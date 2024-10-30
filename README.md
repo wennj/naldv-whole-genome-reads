@@ -32,9 +32,25 @@ Analysing the availability of Illumina and Nanopore data sets on NCBI SRA is a b
 
 ![](output/ncbi_stats/NALDV_stats_on_Genbank_SRA.png)
 
+## Quality of sequencing techniques
+
+‘Sequencing by synthesis’ and Nanopore sequencing are based on completely different methods. While Illumina sequencing (sequencing by synthesis) generates short reads that are extremely accurate, the probability of error is much higher for the long reads of Nanopore sequencing. The following graphic was created to illustrate this. The X-axis shows the Phred quality score (Q), which was converted into the error probability (Y-axis): $$
+P = 10^{-\frac{Q}{10}}
+$$ The values of selected raw sequencing data, which is available on NCBI SRA, were visualized by this plot. The vertical and horizontal dashed lines connect Q = 20 with the corresponding P = 1%.
+
+[Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/quality_score_visualization.R)
+
+![](output/ncbi_stats/phred_vs_probability_combined.png)
+
 ## Read length distribution
 
-To determine the length of nanopore reads from a sequencing run, it is best to create a distribution of sequenced DNA fragments. In the present example, three data sets of BmNPV-Th2 (family Baculoviridae), OrNV-DUG42 (family Nudiviridae) and WSSV-JP04 (family Nimaviridae) were analysed with regard to their length distribution.
+To determine the length of Nanopore reads from a sequencing run, it is best to create a distribution of sequenced DNA fragments. In the present example, three data sets of BmNPV-Th2 (family Baculoviridae), OrNV-DUG42 (family Nudiviridae) and WSSV-JP04 (family Nimaviridae) were analysed with regard to their length distribution.:
+
+| Name       | NCBI SRA Number | Reference                                    |
+|---------------|----------------|------------------------------------------|
+| BmNPV-Th2  | SRR27030578     | <https://doi.org/10.1016/j.jip.2024.108221>  |
+| OrNV-DUG42 | SRR21977634     | <https://doi.org/10.1128/mra.00126-23>       |
+| WSSV-JP04  | DRR420912       | <https://doi.org/10.1007/s12562-023-01715-4> |
 
 [Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/2_length_quality_statistics.Rmd)
 
@@ -42,7 +58,7 @@ To determine the length of nanopore reads from a sequencing run, it is best to c
 
 ## Read quality distribution
 
-tdb
+One of the most important quality characteristics of Nanopore sequencing is its quality. If the quality is calculated individually for each read, the quality of the entire sequencing runcan be represented as a distribution. This was done for the NCBI SRA data sets of (A) BmNPV-Th2, (B) OrNV-DUG42 and (C) WSSV-JP04.
 
 [Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/2_length_quality_statistics.Rmd)
 
@@ -50,7 +66,7 @@ tdb
 
 ## Read length and quality comparison
 
-tbd
+The length of the reads can also be compared with their quality, which allows to test for a possible correlation. It provides information on whether certain reads possibly cover the entire genome of the viruses in terms of length and whether they are of sufficient quality. The dashed lines indicate the average read quality (horizontal line) and half the length of the virus genome (vertical line). The vertical dotted line indicates the full length of the virus genome (A = BmNPV-Th2, B = OrNV-DUG42, C = WSSV-JP04).
 
 [Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/2_length_quality_statistics.Rmd)
 

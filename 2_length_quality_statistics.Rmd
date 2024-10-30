@@ -715,15 +715,14 @@ print(head(data_ILL))
 print(head(data_ONT))
 print(head(data_pavi))
 
-print(data_OntIll <- rbind(data_ILL, data_ONT, data_pavi))
+print(data_ncbi <- rbind(data_ILL, data_ONT, data_pavi))
 
 print(unique(data_OntIll$ISO))
 ```
 
 
 ```{r}
-library(ggplot2)
-library(ggrepel)
+data_ncbi <- read.csv(file = "data/read_length_quality/NCBI_read_statistics.csv")
 
 # Daten für die Kurve erstellen und daraus einen Dataframe
 all_phred_scores <- 0:40
@@ -735,9 +734,9 @@ y_breaks <- c(1, 0.1, 0.01, 0.001, 0.0001)
 y_labels <- c("100%", "10%", "1%", "0.1%", "0.01%")
 
 # Mittelwerte für jedes ISO berechnen ohne dplyr
-isos <- unique(data_OntIll$ISO)
+isos <- unique(data_ncbi$ISO)
 mean_quality_scores <- sapply(isos, function(iso) {
-  mean(data_OntIll$Mean_Quality_Score[data_OntIll$ISO == iso])
+  mean(data_ncbi$Mean_Quality_Score[data_ncbi$ISO == iso])
 })
 mean_quality_probabilities <- phred_to_probability(mean_quality_scores)
 
@@ -770,7 +769,7 @@ y_offsets <- c(0.002, -0.00055, 0.0005, 0.09, -0.02)
 # Plot erstellen
 pQP <- ggplot() +
   geom_line(data = data_all, aes(x = Phred, y = 1-ErrorProbability), color="darkblue") +
-  #geom_point(data = data_OntIll, aes(x = Mean_Quality_Score, y = 1-Mean_Quality_Probability, colour = ISO), 
+  #geom_point(data = data_ncbi, aes(x = Mean_Quality_Score, y = 1-Mean_Quality_Probability, colour = ISO), 
   #           shape=4, size=3) +
   geom_point(data = data_means, aes(x = Mean_Quality_Score, y = 1 - Mean_Quality_Probability, fill = LAB), 
              shape=22, size=4, colour="black", stroke = 0.2) +
