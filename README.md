@@ -8,6 +8,8 @@ The figures and content in this repository are derived from the following public
 
 -   Learn how to approach Nanopore sequence data sets of NALDVs. It demonstrates the importance of carefully examining the data to avoid subsequent errors in the analysis.
 
+-   Provide and explain a Galaxy workflow for the detection of open reading frames (ORF/CDS) on individual Nanopore reads.
+
 -   Present and explain the code used to create the figures in the manuscript (Wennmann, submitted).
 
 -   Particular attention is paid to the detection of reads that may comprise entire genomes of NALDVs and represent individual viral genomes.
@@ -62,7 +64,7 @@ One of the most important quality characteristics of Nanopore sequencing is its 
 
 ## Read length and quality comparison
 
-The length of the reads can also be compared with their quality, which allows to test for a possible correlation. It provides information on whether certain reads possibly cover the entire genome of the viruses in terms of length and whether they are of sufficient quality. The dashed lines indicate the average read quality (horizontal line) and half the length of the virus genome (vertical line). The vertical dotted line indicates the full length of the virus genome (A = BmNPV-Th2, B = OrNV-DUG42, C = WSSV-JP04).
+The length of the reads can also be compared with their quality, which allows to test for a possible correlation. It provides information on whether certain reads possibly cover the entire genome of the viruses in terms of length and whether they are of sufficient quality. The dashed lines indicate the average read quality (horizontal line) and half the length of the virus genome (vertical line). The vertical dotted line indicates the full length of the virus genome (A = BmNPV-Th2, B = OrNV-DUG42, C = WSSV-JP04). Reads that span potentially the entire genome are surrounded by a square.
 
 [Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/2_length_quality_statistics.Rmd)
 
