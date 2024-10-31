@@ -129,7 +129,7 @@ data <- subset(data, ISO %in% c("Nanopore: BmNPV-Th2", "Nanopore: OrNV-DUG42", "
 
 ## Read length
 
-### Split in two plots
+### Nanopore data
 
 ```{r}
 # Daten aufteilen
@@ -220,6 +220,106 @@ f <- 0.8
 ggsave("output/read_length_distribution/length_distribution_combined.png", combined_plot, width = 12*f, height = 5*f) 
 
 ```
+
+### PacBio data
+
+```{r}
+dataPB <- read.delim("data/read_length_quality/read_length_PacBio_AcMNPV.tabular", sep = "\t", header = FALSE)
+
+colnames(dataPB) <- c("Read_Name", "Read_Length")
+
+cutlength <- 50000
+
+# Daten aufteilen
+data_small <- subset(dataPB, Read_Length < cutlength)
+data_large <- subset(dataPB, Read_Length >= cutlength)
+
+# Gemeinsame Parameter
+alpha <- 0.7
+fills <- "firebrick1"
+cols <- "black"
+binwidth <- 1000
+
+# Plot für Reads bis 60.000
+pPB1 <- ggplot(data_small) + 
+  geom_histogram(aes(x = Read_Length, weight = Read_Length, fill = fills), color = cols,
+                 linewidth = 0.2, binwidth = binwidth, alpha = alpha) +
+  scale_x_continuous(expand = c(0, 0),
+                     breaks = seq(0, cutlength, by = 5000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     limits = c(0, 1750000000),
+                     breaks = seq(0, 1750000000, by = 250000000),
+                     labels = seq(0, 17.5, by = 2.5)) +
+  scale_fill_manual(values = alpha(fills, alpha), labels = "PacBio: AcMNPV-WP10") +
+  scale_color_manual(values = cols) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = c(0.7, 0.9),
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Total Bases (Gb)") +
+  xlab("Read Length (nt)")
+
+
+
+# Plot für Reads >= 60.000
+last_bin_end <- max(data_large$Read_Length)
+
+pPB2 <- ggplot(data_large) + 
+  geom_histogram(aes(x = Read_Length, weight = Read_Length, fill = fills), color = cols,
+                 linewidth = 0.2, binwidth = binwidth, alpha = alpha) +
+  scale_x_continuous(expand = c(0, 0),
+                     limits = c(cutlength, 87500),
+                     breaks = seq(cutlength, 85000, by = 5000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     limits = c(0, 7000000),
+                     breaks = seq(0, 7000000, by = 1000000),
+                     labels = seq(0, 7, by = 1)) +
+  scale_fill_manual(values = alpha(fills, alpha)) +
+  scale_color_manual(values = cols) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("Total Bases (Mb)") +
+  xlab("Read Length (nt)")
+  #annotate("text", x = last_bin_end - binwidth/2, y = 200000, label = "*", size = 8, color = "black", vjust = 0.05, hjust = 0.5)
+
+# Plots anzeigen
+print(pPB1)
+print(pPB2)
+
+# Plots speichern
+f <- 2
+
+ggsave(plot = pPB1, filename = "output/read_length_distribution/read_length_distributionPB1.png", 
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+ggsave(plot = pPB2, filename = "output/read_length_distribution/read_length_distributionPB2.png",  
+       units = "cm", 
+       dpi = 300, 
+       width = 6 * f, 
+       height = 5 * f)
+
+
+
+combined_plot <- (pPB1 + pPB2) + plot_annotation(tag_levels = 'A')
+
+# Anzeige des kombinierten Plots
+print(combined_plot)
+
+f <- 1.2
+
+# Speichern des kombinierten Plots
+ggsave("output/read_length_distribution/length_distribution_combined_PB.png", combined_plot, width = 8*f, height = 3*f)
+```
+
 
 # Read Quality Distribution
 
@@ -358,7 +458,7 @@ ggsave(plot = pQ3, filename = "output/read_quality_distribution/read_quality_dis
        width = 6 * f, 
        height = 5 * f)
 
-combined_plot <- (pQ1 + pQ2 + pQja04) +
+combined_plot <- (pQ1 + pQ2 + pQ3) +
   plot_annotation(tag_levels = 'A')
 
 # Anzeige des kombinierten Plots
@@ -369,7 +469,7 @@ f <- 0.8
 ggsave("output/read_quality_distribution/read_quality_distribution_combined.png", combined_plot, width = 12*f, height = 5*f)
 ```
 
-# Read Length vs Quality (stopped here)
+# Read Length vs Quality
 
 
 ```{r}
@@ -521,131 +621,10 @@ ggsave("output/read_length_vs_quality/read_length_vs_quality_combined.png", comb
 
 ```
 
-#stopped here######
-
-# PacBio read length
-
-```{r}
-# Daten einlesen
-data <- read.delim("input/read length stats from Galaxy (PacBio)/AcMNPV filtred pacbio read length.tabular", sep = "\t", header = FALSE)
-
-colnames(data) <- c("Read_Name", "Read_Length")
-
-cutlength <- 50000
-
-# Daten aufteilen
-data_small <- subset(data, Read_Length < cutlength)
-data_large <- subset(data, Read_Length >= cutlength)
-
-# Gemeinsame Parameter
-alpha <- 0.7
-fills <- "firebrick1"
-cols <- "black"
-binwidth <- 1000
-
-# Plot für Reads bis 60.000
-pPB1 <- ggplot(data_small) + 
-  geom_histogram(aes(x = Read_Length, weight = Read_Length, fill = fills), color = cols,
-                 linewidth = 0.2, binwidth = binwidth, alpha = alpha) +
-  scale_x_continuous(expand = c(0, 0),
-                     breaks = seq(0, cutlength, by = 5000)) +
-  scale_y_continuous(expand = c(0, 0),
-                     limits = c(0, 1750000000),
-                     breaks = seq(0, 1750000000, by = 250000000),
-                     labels = seq(0, 17.5, by = 2.5)) +
-  scale_fill_manual(values = alpha(fills, alpha), labels = "PacBio: AcMNPV-WP10") +
-  scale_color_manual(values = cols) +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        legend.position = c(0.7, 0.9),
-        legend.title = element_blank(),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
-  ylab("Total Bases (Gb)") +
-  xlab("Read Length (nt)")
-
-
-
-# Plot für Reads >= 60.000
-last_bin_end <- max(data_large$Read_Length)
-
-pPB2 <- ggplot(data_large) + 
-  geom_histogram(aes(x = Read_Length, weight = Read_Length, fill = fills), color = cols,
-                 linewidth = 0.2, binwidth = binwidth, alpha = alpha) +
-  scale_x_continuous(expand = c(0, 0),
-                     limits = c(cutlength, 87500),
-                     breaks = seq(cutlength, 85000, by = 5000)) +
-  scale_y_continuous(expand = c(0, 0),
-                     limits = c(0, 7000000),
-                     breaks = seq(0, 7000000, by = 1000000),
-                     labels = seq(0, 7, by = 1)) +
-  scale_fill_manual(values = alpha(fills, alpha)) +
-  scale_color_manual(values = cols) +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        legend.position = "none",
-        legend.title = element_blank(),
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
-  ylab("Total Bases (Mb)") +
-  xlab("Read Length (nt)")
-  #annotate("text", x = last_bin_end - binwidth/2, y = 200000, label = "*", size = 8, color = "black", vjust = 0.05, hjust = 0.5)
-
-# Plots anzeigen
-print(pPB1)
-print(pPB2)
-
-# Plots speichern
-f <- 2
-
-ggsave(plot = pPB1, filename = "output/read_length_distribution_small_PB_filtered.png", 
-       units = "cm", 
-       dpi = 300, 
-       width = 6 * f, 
-       height = 5 * f)
-
-ggsave(plot = pPB2, filename = "output/read_length_distribution_large_PB_filtered.png",  
-       units = "cm", 
-       dpi = 300, 
-       width = 6 * f, 
-       height = 5 * f)
-
-
-
-combined_plot <- (pPB1 + pPB2) + plot_annotation(tag_levels = 'A')
-
-# Anzeige des kombinierten Plots
-print(combined_plot)
-
-f <- 1.2
-
-# Speichern des kombinierten Plots
-ggsave("output/PacBio read length.png", combined_plot, width = 8*f, height = 3*f)
-ggsave("output/PacBio read length.pdf", combined_plot, width = 8*f, height = 3*f)
-```
-
-#------------------------
-
 # Combine all plots for publication
 
-## BmNPV and OrNV
-
 ```{r}
-combined_plot <- (p1 + p2) / (pQ1 + pQ2) / (pLQ1 + pLQ2) + plot_annotation(tag_levels = 'A')
-
-# Anzeige des kombinierten Plots
-print(combined_plot)
-
-f <- 1.2
-# Speichern des kombinierten Plots als PDF
-ggsave("output/combined_plot.png", combined_plot, width = 8*f, height = 9*f) 
-ggsave("output/combined_plot.pdf", combined_plot, width = 8*f, height = 9*f) 
-```
-
-## BmNPV, OrNV and PacBio
-
-```{r}
-combined_plot <- (p1 + p2) / (pQ1 + pQ2) / (pLQ1 + pLQ2) / (pPB1 + pPB2) +
+combined_plot <- (p1 + p2) / (pQ1 + pQ2 + pQ3) / (pLQ1 + pLQ2 + pLQ3) / (pPB1 + pPB2) +
   plot_annotation(tag_levels = 'A')
 
 # Anzeige des kombinierten Plots
@@ -653,160 +632,10 @@ print(combined_plot)
 
 f <- 1.2
 # Speichern des kombinierten Plots als PDF
-ggsave("output/combined_plot_plus_PB.png", combined_plot, width = 8*f, height = 10*f) 
-ggsave("output/combined_plot_plus_PB.png", combined_plot, width = 8*f, height = 10*f) 
-# Anzeige des kombinierten Plots
-print(combined_plot)
-```
-
-## Complete combination
-
-```{r}
-combined_plot <- (p1wssv + p2wssv) / (pQ1 + pQ2 + pQja04) / (pLQ1 + pLQ2 + pLQja04) / (pPB1 + pPB2) +
-  plot_annotation(tag_levels = 'A')
-
-# Anzeige des kombinierten Plots
-print(combined_plot)
-
-f <- 1.2
-# Speichern des kombinierten Plots als PDF
-ggsave("output/combined_plot_plus_WSSV_PB.png", combined_plot, width = 8*f, height = 10*f) 
-```
-
-#------------------------
-
-# Illumina
-
-## Input Illumina reads (random subset)
-
-
-```{r}
-# Ordner mit den FASTQ-Dateien
-fastq_folder <- "input/raw reads/Illumina 10000 random subsample"
-# Liste der FASTQ-Dateien im Ordner
-fastq_files <- list.files(fastq_folder, pattern = "\\.fastqsanger$", full.names = TRUE)
-# Initialisieren des Dataframes
-data_ILL <- data.frame()
-# Verarbeiten jeder Datei im Ordner und Hinzufügen der Ergebnisse zum Dataframe
-for (file in fastq_files) {
-  file_data <- process_fastq_file(file)
-  data_ILL <- rbind(data_ILL, file_data)
-}
-
-# Ordner mit den FASTQ-Dateien
-fastq_folder <- "input/raw reads/ONT PaviNPV reads"
-# Liste der FASTQ-Dateien im Ordner
-fastq_files <- list.files(fastq_folder, pattern = "\\.fastqsanger$", full.names = TRUE)
-# Initialisieren des Dataframes
-data_pavi <- data.frame()
-# Verarbeiten jeder Datei im Ordner und Hinzufügen der Ergebnisse zum Dataframe
-for (file in fastq_files) {
-  file_data <- process_fastq_file(file)
-  data_pavi <- rbind(data_pavi, file_data)
-}
-data_pavi <- data_pavi[sample(1:dim(data_pavi)[1], 10000), ]
-
-data_ONT <- read.csv(file = "output/read length and quality table/read_length_quality_df.csv")
-data_ONT <- data_ONT[sample(1:dim(data_ONT)[1], 10000), ]
-data_ONT <- subset(data_ONT, ISO == "Th2")
-
-
-print(head(data_ILL))
-print(head(data_ONT))
-print(head(data_pavi))
-
-print(data_ncbi <- rbind(data_ILL, data_ONT, data_pavi))
-
-print(unique(data_OntIll$ISO))
+ggsave("output/length_quality_plot_publication.png", combined_plot, width = 8*f, height = 10*f) 
 ```
 
 
-```{r}
-data_ncbi <- read.csv(file = "data/read_length_quality/NCBI_read_statistics.csv")
-
-# Daten für die Kurve erstellen und daraus einen Dataframe
-all_phred_scores <- 0:40
-all_error_probabilities <- phred_to_probability(all_phred_scores)
-data_all <- data.frame(Phred=all_phred_scores, ErrorProbability=all_error_probabilities)
-
-# Manuelle Y-Achsen-Beschriftungen
-y_breaks <- c(1, 0.1, 0.01, 0.001, 0.0001)
-y_labels <- c("100%", "10%", "1%", "0.1%", "0.01%")
-
-# Mittelwerte für jedes ISO berechnen ohne dplyr
-isos <- unique(data_ncbi$ISO)
-mean_quality_scores <- sapply(isos, function(iso) {
-  mean(data_ncbi$Mean_Quality_Score[data_ncbi$ISO == iso])
-})
-mean_quality_probabilities <- phred_to_probability(mean_quality_scores)
-
-LAB <- c("2015: AcMNPV-WP10 (SRR1118212)\nIllumina Genome Analyzer IIx",
-         "2024: BmNPV-Th2 (SRR25338386)\nIllumina NextSeq500", 
-         "2024: HearNPV-IIPR05 (SRR21146807)\nIllumina HiSeq2500", 
-         "2024: OpbuNPV (SRR27473752)\nIllumina MiSeq", 
-         "2024: BmNPV-Th2 (SRR27030578)\nONT Rapid Ligation Kit", 
-         "2023: PaviNPV-Gz05 (SRR17312069)\nONT Ligation Kit"
-         )
-
-data_means <- data.frame(ISO = isos, 
-                         Mean_Quality_Score = mean_quality_scores, 
-                         Mean_Quality_Probability = mean_quality_probabilities,
-                         LAB)
-
-data_means$LAB <- factor(data_means$LAB, levels = c(
-                                                    "2024: BmNPV-Th2 (SRR27030578)\nONT Rapid Ligation Kit", 
-                                                    "2023: PaviNPV-Gz05 (SRR17312069)\nONT Ligation Kit",
-                                                    "2015: AcMNPV-WP10 (SRR1118212)\nIllumina Genome Analyzer IIx",
-                                                    "2024: BmNPV-Th2 (SRR25338386)\nIllumina NextSeq500", 
-                                                    "2024: HearNPV-IIPR05 (SRR21146807)\nIllumina HiSeq2500", 
-                                                    "2024: OpbuNPV (SRR27473752)\nIllumina MiSeq"
-                                                    ))
-custom_colors <- brewer.pal(length(LAB), "Purples")
-
-x_offsets <- c(4, -4, 2, 3.5, -4.5)
-y_offsets <- c(0.002, -0.00055, 0.0005, 0.09, -0.02)
-
-# Plot erstellen
-pQP <- ggplot() +
-  geom_line(data = data_all, aes(x = Phred, y = 1-ErrorProbability), color="darkblue") +
-  #geom_point(data = data_ncbi, aes(x = Mean_Quality_Score, y = 1-Mean_Quality_Probability, colour = ISO), 
-  #           shape=4, size=3) +
-  geom_point(data = data_means, aes(x = Mean_Quality_Score, y = 1 - Mean_Quality_Probability, fill = LAB), 
-             shape=22, size=4, colour="black", stroke = 0.2) +
-  geom_segment(aes(x = 20, y = 0.01, xend = 0, yend = 0.01), 
-               linetype = "dotted", color = "black") + #HL
-  geom_segment(aes(x = 20, y = 0.01, xend = 20, yend = 0.0001), 
-               linetype = "dotted", color = "black") + #VL
-  scale_y_log10(expand = c(0,0), breaks = y_breaks, labels = y_labels) +
-  #geom_text(data = data_means, aes(x = Mean_Quality_Score + x_offsets, 
-  #                                       y = 1 - Mean_Quality_Probability + y_offsets, 
-  #                                       label = LAB), 
-  #                size = 2, segment.color = 'grey50') +
-  scale_x_continuous(expand = c(0,0)) +
-  scale_fill_manual(values = custom_colors) +
-  labs(x="Phred Quality Score (Q)",
-       y="Error Probability (%)") +
-  theme_bw() +
-  theme(panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        legend.position = "right", # Setzen Sie die Position der Legende
-        legend.title = element_blank(),
-        legend.text = element_text(size = 8),
-        legend.key.height = unit(1.5, "lines"), # Abstand zwischen den Legendenbeschriftungen
-        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) 
-
-
-# Plots speichern
-f <- 2
-
-ggsave(plot = pQP, filename = "output/phred vs probability.png", 
-       units = "cm", 
-       dpi = 300, 
-       width = 9 * f, 
-       height = 5 * f)
-
-print(pQP)
-```
 
 
 
