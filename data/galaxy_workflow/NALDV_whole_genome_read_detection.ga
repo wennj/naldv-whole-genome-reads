@@ -1,0 +1,461 @@
+{
+    "a_galaxy_workflow": "true",
+    "annotation": "Extracts CDS from a GenBank file to detect the CDS on Nanopore reads using BLAST.",
+    "comments": [],
+    "creator": [
+        {
+            "class": "Organization",
+            "name": "J\u00f6rg T. Wennmann"
+        }
+    ],
+    "format-version": "0.1",
+    "license": "MIT",
+    "name": "NALDV whole genome read detection",
+    "report": {
+        "markdown": "\n# Workflow Execution Report\n\n## Workflow Inputs\n```galaxy\ninvocation_inputs()\n```\n\n## Workflow Outputs\n```galaxy\ninvocation_outputs()\n```\n\n## Workflow\n```galaxy\nworkflow_display()\n```\n"
+    },
+    "steps": {
+        "0": {
+            "annotation": "Provide a txt file with the Genbank accession number of the desired reference genome for CDS detection. Make sure just one accession number is provided!",
+            "content_id": null,
+            "errors": null,
+            "id": 0,
+            "input_connections": {},
+            "inputs": [
+                {
+                    "description": "Provide a txt file with the Genbank accession number of the desired reference genome for CDS detection. Make sure just one accession number is provided!",
+                    "name": "NCBI GenBank Accession number"
+                }
+            ],
+            "label": "NCBI GenBank Accession number",
+            "name": "Input dataset",
+            "outputs": [],
+            "position": {
+                "left": 0,
+                "top": 0
+            },
+            "tool_id": null,
+            "tool_state": "{\"optional\": false, \"tag\": null}",
+            "tool_version": null,
+            "type": "data_input",
+            "uuid": "6812565e-b5d1-4749-a8ef-f22837c92c69",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "1": {
+            "annotation": "One SRA accession number should be provided.",
+            "content_id": null,
+            "errors": null,
+            "id": 1,
+            "input_connections": {},
+            "inputs": [
+                {
+                    "description": "One SRA accession number should be provided.",
+                    "name": "NCBI SRA accession number"
+                }
+            ],
+            "label": "NCBI SRA accession number",
+            "name": "Input dataset",
+            "outputs": [],
+            "position": {
+                "left": 40,
+                "top": 250
+            },
+            "tool_id": null,
+            "tool_state": "{\"optional\": false, \"tag\": null}",
+            "tool_version": null,
+            "type": "data_input",
+            "uuid": "c2a44b9b-6557-4545-9fbc-2b36a6f826d0",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "2": {
+            "annotation": "Provide an integer (min read length) for filtering the reads.",
+            "content_id": null,
+            "errors": null,
+            "id": 2,
+            "input_connections": {},
+            "inputs": [
+                {
+                    "description": "Provide an integer (min read length) for filtering the reads.",
+                    "name": "Minimal ONT read length"
+                }
+            ],
+            "label": "Minimal ONT read length",
+            "name": "Input parameter",
+            "outputs": [],
+            "position": {
+                "left": 60,
+                "top": 590
+            },
+            "tool_id": null,
+            "tool_state": "{\"parameter_type\": \"integer\", \"optional\": false}",
+            "tool_version": null,
+            "type": "parameter_input",
+            "uuid": "c6a96ab2-d3f5-42b7-bca2-22486c6d53bb",
+            "when": null,
+            "workflow_outputs": [
+                {
+                    "label": null,
+                    "output_name": "output",
+                    "uuid": "fc5a00c3-f266-44af-8528-cdf909639d76"
+                }
+            ]
+        },
+        "3": {
+            "annotation": "The reference genome is downloaded in GenBank format.",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/ncbi_acc_download/ncbi_acc_download/0.2.8+galaxy0",
+            "errors": null,
+            "id": 3,
+            "input_connections": {
+                "query_source|accession_file": {
+                    "id": 0,
+                    "output_name": "output"
+                }
+            },
+            "inputs": [
+                {
+                    "description": "runtime parameter for tool NCBI Accession Download",
+                    "name": "query_source"
+                }
+            ],
+            "label": "Download BLAST reference",
+            "name": "NCBI Accession Download",
+            "outputs": [
+                {
+                    "name": "output",
+                    "type": "input"
+                },
+                {
+                    "name": "error_log",
+                    "type": "txt"
+                }
+            ],
+            "position": {
+                "left": 260,
+                "top": 60
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/ncbi_acc_download/ncbi_acc_download/0.2.8+galaxy0",
+            "tool_shed_repository": {
+                "changeset_revision": "e063168e0a81",
+                "name": "ncbi_acc_download",
+                "owner": "iuc",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"ignore_failed\": \"0\", \"molecule\": {\"select\": \"nucleotide\", \"__current_case__\": 0, \"format\": \"genbank\"}, \"query_source\": {\"select\": \"accession_file\", \"__current_case__\": 0, \"accession_file\": {\"__class__\": \"ConnectedValue\"}}, \"range\": null, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "0.2.8+galaxy0",
+            "type": "tool",
+            "uuid": "1fd7a06d-145b-4a14-957b-d0c4f81f8723",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "4": {
+            "annotation": "The NCBI SRA dataset is downloaded.",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/iuc/sra_tools/fastq_dump/3.1.1+galaxy1",
+            "errors": null,
+            "id": 4,
+            "input_connections": {
+                "input|file_list": {
+                    "id": 1,
+                    "output_name": "output"
+                }
+            },
+            "inputs": [
+                {
+                    "description": "runtime parameter for tool Download and Extract Reads in FASTQ",
+                    "name": "input"
+                }
+            ],
+            "label": "NCBI SRA download",
+            "name": "Download and Extract Reads in FASTQ",
+            "outputs": [
+                {
+                    "name": "list_paired",
+                    "type": "input"
+                },
+                {
+                    "name": "list_single",
+                    "type": "input"
+                }
+            ],
+            "position": {
+                "left": 310,
+                "top": 320
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/iuc/sra_tools/fastq_dump/3.1.1+galaxy1",
+            "tool_shed_repository": {
+                "changeset_revision": "8848455c0270",
+                "name": "sra_tools",
+                "owner": "iuc",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"adv\": {\"defline_seq\": \"@$ac.$sn[_$rn]/$ri\", \"minID\": null, \"maxID\": null, \"minlen\": null, \"split\": false, \"alignments\": \"both\", \"region\": null, \"matepairDist\": null, \"readfilter\": \"\", \"spotgroups\": null, \"clip\": false, \"skip_technical\": false, \"table\": \"\"}, \"input\": {\"input_select\": \"file_list\", \"__current_case__\": 2, \"file_list\": {\"__class__\": \"ConnectedValue\"}}, \"outputformat\": \"fastqsanger.gz\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "3.1.1+galaxy1",
+            "type": "tool",
+            "uuid": "76306bfb-843d-41ec-908b-65cccbd909ac",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "5": {
+            "annotation": "CDS are extracted in FASTA format from the Genbank format of the reference genome.",
+            "content_id": "gbk_to_orf",
+            "errors": null,
+            "id": 5,
+            "input_connections": {
+                "infile": {
+                    "id": 3,
+                    "output_name": "output"
+                }
+            },
+            "inputs": [],
+            "label": "CDS extraction in FASTA format",
+            "name": "Extract sequences from GenBank",
+            "outputs": [
+                {
+                    "name": "outfile",
+                    "type": "fasta"
+                }
+            ],
+            "position": {
+                "left": 540,
+                "top": 140
+            },
+            "post_job_actions": {},
+            "tool_id": "gbk_to_orf",
+            "tool_state": "{\"feature_opts\": {\"feature_opts_selector\": \"CDS\", \"__current_case__\": 0, \"type_opts\": {\"type_opts_selector\": \"nuc\", \"__current_case__\": 1}}, \"infile\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "0.1",
+            "type": "tool",
+            "uuid": "f5177d65-7007-475c-ae8f-7710c33de766",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "6": {
+            "annotation": "For sequence filtering, the FASTA format is required. Since FASTA format is also enough for creating the local BLAST database, everything is converted. ",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_to_fasta/cshl_fastq_to_fasta/1.0.2+galaxy2",
+            "errors": null,
+            "id": 6,
+            "input_connections": {
+                "input": {
+                    "id": 4,
+                    "output_name": "list_single"
+                }
+            },
+            "inputs": [],
+            "label": "FASTQ to FASTA conversion",
+            "name": "FASTQ to FASTA",
+            "outputs": [
+                {
+                    "name": "output",
+                    "type": "fasta"
+                },
+                {
+                    "name": "output_gz",
+                    "type": "fasta.gz"
+                }
+            ],
+            "position": {
+                "left": 600,
+                "top": 420
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fastq_to_fasta/cshl_fastq_to_fasta/1.0.2+galaxy2",
+            "tool_shed_repository": {
+                "changeset_revision": "77b41c89d856",
+                "name": "fastq_to_fasta",
+                "owner": "devteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"RENAMESEQ\": \"\", \"SKIPN\": \"-n\", \"compress_output\": \"no\", \"input\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "1.0.2+galaxy2",
+            "type": "tool",
+            "uuid": "a69018ef-5e43-4da8-a1a9-58d611c397e7",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "7": {
+            "annotation": "All CDS sequences are collapse into a single FAST file.",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
+            "errors": null,
+            "id": 7,
+            "input_connections": {
+                "input_list": {
+                    "id": 5,
+                    "output_name": "outfile"
+                }
+            },
+            "inputs": [],
+            "label": "Collapse all CDS into a single file",
+            "name": "Collapse Collection",
+            "outputs": [
+                {
+                    "name": "output",
+                    "type": "input"
+                }
+            ],
+            "position": {
+                "left": 830,
+                "top": 190
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/nml/collapse_collections/collapse_dataset/5.1.0",
+            "tool_shed_repository": {
+                "changeset_revision": "90981f86000f",
+                "name": "collapse_collections",
+                "owner": "nml",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"filename\": {\"add_name\": false, \"__current_case__\": 1}, \"input_list\": {\"__class__\": \"ConnectedValue\"}, \"one_header\": false, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "5.1.0",
+            "type": "tool",
+            "uuid": "f58a40e8-5f9a-49e3-86c3-6f7a987c8f42",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "8": {
+            "annotation": "Searching all reads is too much. We should limit the BLAST search for specific length and beyond. ",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_filter_by_length/fasta_filter_by_length/1.2",
+            "errors": null,
+            "id": 8,
+            "input_connections": {
+                "input": {
+                    "id": 6,
+                    "output_name": "output"
+                },
+                "min_length": {
+                    "id": 2,
+                    "output_name": "output"
+                }
+            },
+            "inputs": [],
+            "label": "Sequence length filtering",
+            "name": "Filter sequences by length",
+            "outputs": [
+                {
+                    "name": "output",
+                    "type": "fasta"
+                }
+            ],
+            "position": {
+                "left": 910,
+                "top": 480
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/fasta_filter_by_length/fasta_filter_by_length/1.2",
+            "tool_shed_repository": {
+                "changeset_revision": "8cacfcf96a52",
+                "name": "fasta_filter_by_length",
+                "owner": "devteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"input\": {\"__class__\": \"ConnectedValue\"}, \"max_length\": \"0\", \"min_length\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "1.2",
+            "type": "tool",
+            "uuid": "21c9f293-fce6-49d1-9843-e3b6ccce35b5",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "9": {
+            "annotation": "From the filtered ONT reads a local BLAST database is created.",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_makeblastdb/2.14.1+galaxy2",
+            "errors": null,
+            "id": 9,
+            "input_connections": {
+                "input|selection_0|nuc_choice|input_file": {
+                    "id": 8,
+                    "output_name": "output"
+                }
+            },
+            "inputs": [
+                {
+                    "description": "runtime parameter for tool NCBI BLAST+ makeblastdb",
+                    "name": "mask_data_file"
+                }
+            ],
+            "label": "Creating a local BLAST database",
+            "name": "NCBI BLAST+ makeblastdb",
+            "outputs": [
+                {
+                    "name": "outfile",
+                    "type": "data"
+                }
+            ],
+            "position": {
+                "left": 1200,
+                "top": 520
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_makeblastdb/2.14.1+galaxy2",
+            "tool_shed_repository": {
+                "changeset_revision": "cbf3f518b668",
+                "name": "ncbi_blast_plus",
+                "owner": "devteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"hash_index\": true, \"input\": {\"type\": \"nucleotide\", \"__current_case__\": 1, \"selection\": [{\"__index__\": 0, \"nuc_choice\": {\"source\": \"history\", \"__current_case__\": 0, \"input_file\": {\"__class__\": \"ConnectedValue\"}}}]}, \"mask_data_file\": {\"__class__\": \"RuntimeValue\"}, \"parse_seqids\": false, \"tax\": {\"taxselect\": \"\", \"__current_case__\": 0}, \"title\": \"ONT reads BLAST db\", \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "2.14.1+galaxy2",
+            "type": "tool",
+            "uuid": "5eb49e3a-5ea3-4090-a931-8fb3494b73af",
+            "when": null,
+            "workflow_outputs": []
+        },
+        "10": {
+            "annotation": "The blast search in conducted using mega blast.",
+            "content_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.14.1+galaxy2",
+            "errors": null,
+            "id": 10,
+            "input_connections": {
+                "db_opts|histdb": {
+                    "id": 9,
+                    "output_name": "outfile"
+                },
+                "query": {
+                    "id": 7,
+                    "output_name": "output"
+                }
+            },
+            "inputs": [
+                {
+                    "description": "runtime parameter for tool NCBI BLAST+ blastn",
+                    "name": "db_opts"
+                }
+            ],
+            "label": "BLAST search",
+            "name": "NCBI BLAST+ blastn",
+            "outputs": [
+                {
+                    "name": "output1",
+                    "type": "tabular"
+                }
+            ],
+            "position": {
+                "left": 1470,
+                "top": 300
+            },
+            "post_job_actions": {},
+            "tool_id": "toolshed.g2.bx.psu.edu/repos/devteam/ncbi_blast_plus/ncbi_blastn_wrapper/2.14.1+galaxy2",
+            "tool_shed_repository": {
+                "changeset_revision": "cbf3f518b668",
+                "name": "ncbi_blast_plus",
+                "owner": "devteam",
+                "tool_shed": "toolshed.g2.bx.psu.edu"
+            },
+            "tool_state": "{\"adv_opts\": {\"adv_opts_selector\": \"basic\", \"__current_case__\": 0}, \"blast_type\": \"megablast\", \"db_opts\": {\"db_opts_selector\": \"histdb\", \"__current_case__\": 1, \"database\": \"\", \"histdb\": {\"__class__\": \"ConnectedValue\"}, \"subject\": \"\"}, \"evalue_cutoff\": \"0.001\", \"output\": {\"out_format\": \"ext\", \"__current_case__\": 1}, \"query\": {\"__class__\": \"ConnectedValue\"}, \"__page__\": null, \"__rerun_remap_job_id__\": null}",
+            "tool_version": "2.14.1+galaxy2",
+            "type": "tool",
+            "uuid": "1da14046-eac4-4ab3-8fe8-f9e28449cd8b",
+            "when": null,
+            "workflow_outputs": [
+                {
+                    "label": "output1",
+                    "output_name": "output1",
+                    "uuid": "bfd0fb22-123f-4f7a-a147-2385e779e1e2"
+                }
+            ]
+        }
+    },
+    "tags": [],
+    "uuid": "eccdb845-b6b3-4fd2-973e-9e6bd853fcf1",
+    "version": 20
+}
