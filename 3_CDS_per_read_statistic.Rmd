@@ -1,0 +1,333 @@
+---
+title: "CDS per read determination"
+author: "Jörg Wennmann"
+date: "2024-11-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Required Libraries
+
+```{r include=FALSE}
+library(ggplot2)
+library(ggrepel)
+library(ShortRead)
+library(RColorBrewer)
+library(patchwork)
+library(ggrepel)
+```
+
+#-----------------
+
+# Combine blast hit and read length
+
+```{r}
+process_megablast_data <- function(megablast_input, read_length_input, output_file) {
+  # Megablast-Datei einlesen
+  blast_results <- read.delim(megablast_input, header = FALSE, check.names = FALSE)
+  
+  # Spaltennamen hinzufügen
+  colnames(blast_results) <- c("query_accession", "subject_accession", "percent_identity",
+                               "alignment_length", "num_mismatches", "num_gap_opens", 
+                               "query_start", "query_end", "subject_start", 
+                               "subject_end", "e_value", "bit_score", 
+                               "all_subject_ids", "raw_score", "num_identical_matches",
+                               "num_positive_matches", "total_gaps","percent_positive_matches",
+                               "query_frame", "subject_frame", "query_sequence", 
+                               "subject_sequence", "query_length", "subject_length",
+                               "all_subject_titles")
+
+  # Aggregation der besten Treffer pro query/subject Kombination
+  aggregate_results <- function(data) {
+    unique_queries <- unique(data$query_accession)
+    unique_subjects <- unique(data$subject_accession)
+    
+    aggregated_results <- data.frame()
+    
+    for (query in unique_queries) {
+      for (subject in unique_subjects) {
+        subset_data <- data[data$query_accession == query & data$subject_accession == subject, ]
+        if (nrow(subset_data) > 0) {
+          best_hit <- subset_data[which.min(subset_data$e_value), ]
+          aggregated_results <- rbind(aggregated_results, best_hit)
+        }
+      }
+    }
+    
+    return(aggregated_results)
+  }
+
+  # aggregate best hits
+  blast_results <- aggregate_results(blast_results)
+  
+  # keep only hits with E-Value < 1e-05 
+  blast_results <- blast_results[which(blast_results$e_value < 1e-05), ]
+  
+  # create Wide-Format
+  unique_queries <- unique(blast_results$query_accession)
+  unique_subjects <- unique(blast_results$subject_accession)
+  wide_format <- data.frame(matrix(NA, nrow = length(unique_queries), ncol = length(unique_subjects)))
+  rownames(wide_format) <- unique_queries
+  colnames(wide_format) <- unique_subjects
+  
+  for (i in 1:nrow(blast_results)) {
+    query <- blast_results$query_accession[i]
+    subject <- blast_results$subject_accession[i]
+    percent_identity <- blast_results$percent_identity[i]
+    wide_format[query, subject] <- percent_identity
+  }
+  
+  # Reihen nach extrahierter Zahl sortieren
+  rownames_df <- rownames(wide_format)
+  rownames_df <- paste(rownames_df, ".fasta", sep = "")
+  
+  extract_number <- function(name) {
+    start_pos <- regexpr("_-", name) + 2
+    end_pos <- regexpr(".fasta", name) - 1
+    as.numeric(substr(name, start_pos, end_pos))
+  }
+  
+  numbers <- sapply(rownames_df, extract_number)
+  wide_format <- cbind(wide_format, extracted_numbers = numbers)
+  wide_format <- wide_format[order(wide_format[, "extracted_numbers"]), ]
+  
+  # Ergebnis speichern
+  write.csv(wide_format, output_file, row.names = FALSE)
+  
+  # Read-Length Datei einlesen
+  read_length_df <- read.delim(read_length_input, header = FALSE, check.names = FALSE)
+  colnames(read_length_df) <- c("read_name", "read_length")
+  
+  # CDS zählen für jede Read-Length
+  count_non_na_values <- function(df1, df2) {
+    results <- data.frame(read_name = character(),
+                          read_length = numeric(),
+                          no_cds = integer(),
+                          stringsAsFactors = FALSE)
+    
+    for (read in df2$read_name) {
+      if (read %in% colnames(df1)) {
+        no_cds <- sum(!is.na(df1[[read]]))
+        read_length <- df2$read_length[df2$read_name == read]
+        results <- rbind(results, data.frame(read_name = read, 
+                                             read_length = read_length, 
+                                             no_cds = no_cds))
+      }
+    }
+    
+    return(results)
+  }
+  
+  lengthCDS <- count_non_na_values(wide_format, read_length_df)
+  lengthCDS <- lengthCDS[order(lengthCDS$no_cds, decreasing = TRUE), ]
+  row.names(lengthCDS) <- NULL
+  
+  return(lengthCDS)
+}
+
+length_CDS_JP04 <- process_megablast_data(
+  "data/CDS_blast/megablast_JP04.tabular",
+  "data/CDS_blast/read_length_JP04.tabular",
+  "output/CDS_per_read/cds_per_read_JP04.csv")
+
+length_CDS_Th2 <- process_megablast_data(
+  "data/CDS_blast/megablast_Th2.tabular",
+  "data/CDS_blast/read_length_Th2.tabular",
+  "output/CDS_per_read/cds_per_read_Th2.csv")
+
+length_CDS_DUG42 <- process_megablast_data(
+  "data/CDS_blast/megablast_DUG42.tabular",
+  "data/CDS_blast/read_length_DUG42.tabular",
+  "output/CDS_per_read/cds_per_read_DUG42.csv")
+
+```
+
+#--------------------
+
+# CDS per Read Plot
+
+```{r}
+iso1Col <- brewer.pal(9, "Blues")[5]  #Th2
+iso2Col <- brewer.pal(9, "Greens")[5] #DUG42
+iso3Col <- "firebrick1"  #WP10
+iso4Col <- "#BC80BD" #JA04
+
+thrCol <- "black"
+
+dotSize <- 2
+
+```
+
+## Th2
+
+```{r}
+length_CDS_Th2 <- subset(length_CDS_Th2, read_name != "Th2")
+
+# Annahme: length_CDS_Th2 ist bereits definierter DataFrame
+length_CDS_Th2$ISO <- "Th2"
+
+th2_full <- 126574
+th2_half <- th2_full/2
+
+xbreaks <- c(50000, 60000, 70000, 80000, 90000, 1e+05, 110000, 120000, th2_full)
+ybreaks <- c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 
+138)
+# Top vier Werte in der Spalte no_cds identifizieren
+top_indices <- order(length_CDS_Th2$no_cds, decreasing = TRUE)[1:4]
+length_CDS_Th2$top <- ifelse(1:nrow(length_CDS_Th2) %in% top_indices, "Top", "Others")
+
+# DataFrame nach ISO sortieren
+length_CDS_Th2 <- length_CDS_Th2[order(length_CDS_Th2$ISO), ]
+
+# Plot erstellen
+pLC_Th2 <- ggplot(length_CDS_Th2, aes(x = read_length, y = no_cds, color = top, alpha = 0.7)) +
+  
+  geom_vline(xintercept = th2_full, linetype = "dotted", color = thrCol) + 
+  geom_hline(yintercept = 138, linetype = "dotted", color = thrCol) +
+  
+  geom_point(size = dotSize) +
+  scale_color_manual(values = c("Top" = "orange", "Others" = iso1Col)) + # Farben manuell setzen
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("ORF per Read") +
+  xlab("Read Length (nt)") +
+  scale_x_continuous(expand = c(0,0),
+                     #breaks = seq(50000, 130000, by = 10000),
+                     breaks = xbreaks,
+                     limits = c(50000, 132000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     #breaks = seq(0, 160, by = 10), 
+                     breaks = ybreaks,
+                     limits = c(0, 155))
+
+# Plot anzeigen
+print(pLC_Th2)
+```
+
+## DUG42
+
+```{r}
+length_CDS_DUG42 <- subset(length_CDS_DUG42, read_name != "DUG42")
+
+# Annahme: length_CDS_DUG42 ist bereits definierter DataFrame
+length_CDS_DUG42$ISO <- "DUG42"
+
+# Top vier Werte in der Spalte no_cds identifizieren
+top_indices <- order(length_CDS_DUG42$no_cds, decreasing = TRUE)[1:4]
+length_CDS_DUG42$top <- ifelse(1:nrow(length_CDS_DUG42) %in% top_indices, "Top", "Others")
+
+# DataFrames zusammenfügen
+lengthCDS <- length_CDS_DUG42
+
+# ISO-Spalte als Faktor definieren und Reihenfolge festlegen
+lengthCDS$ISO <- factor(lengthCDS$ISO, levels = c("DUG42"))
+
+# DataFrame nach ISO sortieren
+lengthCDS <- lengthCDS[order(lengthCDS$ISO), ]
+
+
+dug42_full <- 125879
+dug42_half <- dug42_full/2
+
+xbreaks <- sort(c(seq(50000, 185000, by = 10000), 180769, dug42_full), decreasing = F)
+xbreaks <- xbreaks[xbreaks != 180000]
+xbreaks <- xbreaks[xbreaks != 130000]
+ybreaks <- c(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 
+139)
+
+# Plot erstellen
+pLC_NV <- ggplot(lengthCDS, aes(x = read_length, y = no_cds)) +
+  
+  geom_vline(xintercept = dug42_full, linetype = "dotted", color = thrCol) + 
+  geom_hline(yintercept = 139, linetype = "dotted", color = thrCol) +
+  
+  geom_point(aes(color = "Others"), size = dotSize, alpha = 0.7, 
+             data = subset(lengthCDS, top == "Others")) +
+  geom_point(aes(color = "Top"), size = dotSize, alpha = 0.7, 
+             data = subset(lengthCDS, top == "Top")) +
+  scale_color_manual(values = c("Top" = "orange", "Others" = iso2Col)) + # Farben manuell setzen
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("ORF per Read") +
+  xlab("Read Length (nt)") +
+  scale_x_continuous(expand = c(0, 0),
+                     #breaks = seq(50000, 185000, by = 10000),
+                     breaks = xbreaks,
+                     limits = c(50000, 185000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     #breaks = seq(0, 160, by = 10), 
+                     breaks = ybreaks,
+                     limits = c(0, 155))
+
+# Plot anzeigen
+print(pLC_NV)
+```
+
+## JA04
+
+
+```{r}
+length_CDS_JP04 <- subset(length_CDS_JP04, read_name != "JP04")
+
+# Annahme: length_CDS_JP04 ist bereits definierter DataFrame
+length_CDS_JP04$ISO <- "WSSV"
+
+# Top vier Werte in der Spalte no_cds identifizieren
+top_indices <- order(length_CDS_JP04$no_cds, decreasing = TRUE)[1:2]
+length_CDS_JP04$top <- ifelse(1:nrow(length_CDS_JP04) %in% top_indices, "Top", "Others")
+
+# DataFrame nach ISO sortieren
+length_CDS_JP04 <- length_CDS_JP04[order(length_CDS_JP04$ISO), ]
+
+xbreaks <- c(50000, 60000, 70000, 80000, 90000, 100000, 110000, 120000, 130000, 140000, wssv_half, 160000, 171438)
+
+# Plot erstellen
+pLC_JA04 <- ggplot(length_CDS_JP04, aes(x = read_length, y = no_cds, color = top, alpha = 0.7)) +
+  geom_point(size = dotSize) +
+  scale_color_manual(values = c("Top" = "orange", "Others" = iso4Col)) + # Farben manuell setzen
+  theme_bw() +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.position = "none",
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1)) +
+  ylab("ORF per Read") +
+  xlab("Read Length (nt)") +
+  scale_x_continuous(expand = c(0,0),
+                     #breaks = seq(50000, 130000, by = 10000),
+                     breaks = xbreaks,
+                     limits = c(50000, 180000)) +
+  scale_y_continuous(expand = c(0, 0),
+                     breaks = seq(0, 90, by = 10), 
+                     limits = c(0, 90)) +
+  geom_vline(xintercept = 150527, linetype = "dashed", color = thrCol) 
+
+# Plot anzeigen
+print(pLC_JA04)
+```
+
+
+## Combine and save plot
+
+```{r}
+combined_plot <- (pLC_Th2 + pLC_NV + pLC_JA04) +
+  plot_annotation(tag_levels = 'A')
+
+f <- 1.5
+# Speichern des kombinierten Plots als PDF
+ggsave("output/CDS per read.png", combined_plot, width = 8*f, height = 2.5*f) 
+# Anzeige des kombinierten Plots
+print(combined_plot)
+```
+
+#--------------------
+
+

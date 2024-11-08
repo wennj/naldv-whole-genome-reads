@@ -55,6 +55,8 @@ To determine the length of Nanopore reads from a sequencing run, it is best to c
 
 ![](output/read_length_distribution/length_distribution_combined.png)
 
+Below the read length distribution of PacBio reads of AcMNPV-WP10.
+
 ![](output/read_length_distribution/length_distribution_combined_PB.png)
 
 ## Read quality distribution
@@ -88,3 +90,11 @@ If you are using your own data that has not yet been published on NCBI Genbank a
 [The Galaxy workflow file can be found here.](https://github.com/wennj/naldv-whole-genome-reads/tree/main/data/galaxy_workflow)
 
 ![](data/galaxy_workflow/galaxy_workflow_2024-11-04.png)
+
+## CDS per detected read
+
+Since we perform the blast for each read individually, we can calculate the number of reads from the blast hit table. At the same time, we already know the length of all Nanopore reads. Thus, we can relate the length of the read to the number of CDS.
+
+[Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/3_CDS_per_read_statistic.Rmd.Rmd)
+
+![](output/CDS per read.png)
