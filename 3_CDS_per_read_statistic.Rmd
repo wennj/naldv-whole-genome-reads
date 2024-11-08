@@ -323,7 +323,7 @@ combined_plot <- (pLC_Th2 + pLC_NV + pLC_JA04) +
 
 f <- 1.5
 # Speichern des kombinierten Plots als PDF
-ggsave("output/CDS per read.png", combined_plot, width = 8*f, height = 2.5*f) 
+ggsave("output/CDS_per_read.png", combined_plot, width = 8*f, height = 2.5*f) 
 # Anzeige des kombinierten Plots
 print(combined_plot)
 ```
