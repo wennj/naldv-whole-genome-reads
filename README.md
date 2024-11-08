@@ -45,7 +45,7 @@ $$ The values of selected raw sequencing data, which is available on NCBI SRA, w
 To determine the length of Nanopore reads from a sequencing run, it is best to create a distribution of sequenced DNA fragments. In the present example, three data sets of BmNPV-Th2 (family Baculoviridae), OrNV-DUG42 (family Nudiviridae) and WSSV-JP04 (family Nimaviridae) were analysed with regard to their length distribution:
 
 | Name        | NCBI SRA Number | Reference                                    |
-|------------------|------------------|------------------------------------|
+|-------------------|-------------------|------------------------------------|
 | BmNPV-Th2   | SRR27030578     | <https://doi.org/10.1016/j.jip.2024.108221>  |
 | OrNV-DUG42  | SRR21977634     | <https://doi.org/10.1128/mra.00126-23>       |
 | WSSV-JP04   | DRR420912       | <https://doi.org/10.1007/s12562-023-01715-4> |
@@ -73,9 +73,17 @@ The length of the reads can also be compared with their quality, which allows to
 
 ![](output/read_length_vs_quality/read_length_vs_quality_combined.png)
 
-## Galaxy workflow for ORF per read detection
+## Galaxy workflow for CDS per read detection
 
-\<tbd\>
+The core of the analysis for finding reads that cover the entire NALDV genome is a bioinformatic workflow for detecting the coding sequence (CDS) on each individual Nanopore read. If a NALDV genome has been successfully sequenced, (almost) all of its CDS must also be present on the corresponding read. If only parts of the genome have been sequenced, fewer CDS should be found. In other words, a linear relationship between the length of the nanopore read and the number of encoded CDS should exist. To identify the CDS on each read, a local blastn is performed based on a database of the sequenced NALDV genome. Therefore, it is first necessary that the genome is assembled and annotated. This can also be done in advance by a genome assembly and annotation. The workflow provided below requires
+
+-   a NCBI SRA dataset and
+
+-   a fully sequenced and annotated NALDV genome from NCBI Genbank in Genbank format.
+
+If you are using your own data that has not yet been published on NCBI Genbank and SRA, the workflow can be adapted to work with two FASTA files: (i) FASTA file with all CDS and (ii) FASTA file with all Nanopore reads.
+
+[Here is a direct link to the workflow on usegalaxy.eu](https://usegalaxy.eu/u/wennmann/w/naldv-whole-genome-read-detection)
 
 [The Galaxy workflow file can be found here.](https://github.com/wennj/naldv-whole-genome-reads/tree/main/data/galaxy_workflow)
 
