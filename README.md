@@ -45,7 +45,7 @@ $$ The values of selected raw sequencing data, which is available on NCBI SRA, w
 To determine the length of Nanopore reads from a sequencing run, it is best to create a distribution of sequenced DNA fragments. In the present example, three data sets of BmNPV-Th2 (family Baculoviridae), OrNV-DUG42 (family Nudiviridae) and WSSV-JP04 (family Nimaviridae) were analysed with regard to their length distribution:
 
 | Name        | NCBI SRA Number | Reference                                    |
-|-------------------|-------------------|-----------------------------------|
+|----------------|----------------|----------------------------------------|
 | BmNPV-Th2   | SRR27030578     | <https://doi.org/10.1016/j.jip.2024.108221>  |
 | OrNV-DUG42  | SRR21977634     | <https://doi.org/10.1128/mra.00126-23>       |
 | WSSV-JP04   | DRR420912       | <https://doi.org/10.1007/s12562-023-01715-4> |
@@ -93,8 +93,16 @@ If you are using your own data that has not yet been published on NCBI Genbank a
 
 ## CDS per detected read
 
-Since we perform the blast for each read individually, we can calculate the number of reads from the blast hit table. At the same time, we already know the length of all Nanopore reads. Thus, we can relate the length of the read to the number of CDS.
+Since we perform the blast for each read individually, we can calculate the number of CDS for each read from the blast hit table. At the same time, we already know the length of all Nanopore reads (see above). The number of detected CDS and the length of the read can be connected in R by the read's name. Thus, we can relate the length of the read to the number of CDS.
 
 [Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/3_CDS_per_read_statistic.Rmd)
 
 ![](output/CDS_per_read.png)
+
+## Circular CDS presentation
+
+In the last step, the reads with the highest number of CDSs can be visualized in a circular plot. Of course, another type of plot is also possible, e.g. a matrix. However, the circular plot adequately reflects the circular dsDNA genome of the NALDV. The circular plot shows that some reads encode all CDSs of a NALDV genome and thus represent the entire genome.
+
+[Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/4_circular_read_plot.Rmd)
+
+![](output/circular_CDS_plot/circlize_plot_BmNPV_OrNV_legend_AB.png){width="400"}

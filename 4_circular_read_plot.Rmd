@@ -1,0 +1,847 @@
+---
+title: "whole genome read visualization"
+author: "Jörg Wennmann"
+date: "2024-11-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Required Libraries
+
+```{r include=FALSE}
+library(circlize)
+library(Biostrings)
+library(stringr)
+library(reshape2)
+library(ggplot2)
+```
+
+#-------------
+
+## Set color for circular plot
+
+```{r}
+my_col_fun <- colorRamp2(c(75, 90, 100), c("red", "yellow", "blue"))
+```
+
+#-------------
+
+## BmNPV-Th2 Circular Plot
+
+### Read and filter data
+
+```{r}
+wide_format <- read.csv(file = "output/CDS_per_read/cds_per_read_Th2.csv")
+
+non_na_counts <- sapply(wide_format, function(col) sum(!is.na(col)))
+print(table(non_na_counts))
+
+#take only the reads with the most CDS
+wide_format <- wide_format[, order(non_na_counts, decreasing = TRUE)]
+wide_format <- wide_format[,1:5]
+```
+
+### Create Circos Plot
+
+```{r include=FALSE}
+f <- 2
+h <- 7.5
+w <- h
+
+options(bitmapType='cairo')
+png(filename = "output/circular_CDS_plot/circlize_plot_Th2.png", width = w*f, height = h*f, units = "cm", res = 300)
+  
+
+gene_annotation <-   c("polh", "orf1629", "pk-1", "", "", "lef-1", "egt", "odv-e26", "", "", "", "arif-1", "pif-2", "f-protein", "pkip", "dbp", "", "iap-1", "lef-6", "", "", "bro-a", "sod", "fgf", "", "ubiquitin", "pp31", "lef-11", "bv-e31", "p43", "p47", "lef-12", "gta", "", "", "", "odv-e66", "ets", "lef-8", "", "", "ac53", "lef-10", "vp1054", "", "", "", "", "", "fp25", "lef-9", "", "gp37", "dnapol", "desmo", "lef-3", "pif-6", "", "iap-2", "", "", "", "ac75", "", "vlf-1", "ac78", "", "gp41", "ac81", "tlp", "vp91", "vp15", "cg30", "vp39", "lef-4", "", "p33", "p18", "odv-e25", "helicase", "pif-4", "bro-c", "38k", "lef-5", "p6.9", "p40", "p12", "p48", "vp80", "he65", "ac106/107", "ac108", "odv-ec43", "ac110", "", "", "pif-3", "", "", "pif-1", "", "", "", "gcn2", "", "lef-7", "chitinase", "v-cath", "gp64", "p24", "gp16", "pp34", "", "alkexo", "p35", "p26", "p10", "p74", "me53", "", "ie-0", "p49", "odv-e18", "odv-ec27", "ac145", "ac146", "ie-1", "pif-5", "", "", "ie-2", "pe38", "", "ptp", "bro-d", "", "", "lef-2")
+
+result_df <- wide_format
+
+result_df <- result_df[, !names(result_df) %in% "extracted_numbers"]
+
+mat <- as.matrix(result_df)
+
+sequence_names <- colnames(mat)
+sequence_names <- substr(sequence_names, 1, 9)
+
+### TH2   = 126,575
+### 01729 = 125,647
+### 3dcd8 = 125,536
+### ac848 = 125,594
+### c8130 = 125,346
+genome_length <- c("126,575", "125,647", "125,346", "125,594", "125,536")
+names(genome_length) <- sequence_names
+
+# Vektor zur Bestimmung der hervorgehobenen Zellen (Lokalisation des Adapters)
+### TH2   = 0
+### 01729 = 84
+### ac848 = 3
+### 3dcd8 = 119
+### c8130 = 4
+highlight_cells <- c(0, 84, 4, 3, 119)
+names(highlight_cells) <- colnames(mat)
+
+# Rownames von gene_annotation$annotation zuweisen
+rownames(mat) = gene_annotation
+
+# Farbfunktion für den Gradienten von Rot über Orange zu Gelb
+#my_col_fun <- colorRamp2(c(50, 90, 100), c("blue", "red", "yellow"))
+#my_col_fun <- colorRamp2(c(50, 90, 100), c("red", "yellow", "blue"))
+my_col_fun <- my_col_fun
+
+# Ein einziger Sektor
+sectors = "a"
+
+# Erstellung der fünf einzelnen Matrizen
+mat_list <- lapply(1:5, function(i) mat[, i, drop = FALSE])
+
+# Circopar Einstellungen und Initialisierung
+circos.par(cell.padding = c(0.01, 0.01, 0.01, 0.01), gap.degree = 60, start.degree = 89,
+            canvas.xlim = c(-1.07, 1.07), canvas.ylim = c(-1.07, 1.07))
+circos.initialize(sectors, xlim = c(0, 138))
+
+track_order <- c(1, 2, 4, 5, 3)
+
+# Zeichnen der circos tracks
+for (j in track_order) {
+  circos.track(ylim = c(0, 1), bg.border = NA, track.height = 0.1, panel.fun = function(x, y) {
+    col_mat = my_col_fun(mat_list[[j]])
+    nr = nrow(mat_list[[j]])
+    for (i in 1:nr) {
+      circos.rect(i - 1, 0, i, 1, border = "black", col = col_mat[i, 1], lwd = 0.2)
+      
+      # Hervorheben der Zellen durch ein Kreuz
+      if (i == highlight_cells[j]) {
+        circos.lines(c(i - 1, i), c(0, 1), col = "black", lwd = 1)
+        circos.lines(c(i - 1, i), c(1, 0), col = "black", lwd = 1)
+      }
+    }
+
+    text_size <- 0.5
+    font_style = 1
+
+    # Hinzufügen der Beschriftungen nur im ersten Track
+    if (j == 1) {
+      gene_names = rownames(mat_list[[j]])
+      half = floor(nr / 1.7)
+      for (i in seq_len(nr)) {
+        if (i <= half) {
+          circos.text(i - 0.5, 1.2, gene_names[i], cex = text_size, adj = c(0, 0.5),
+                      facing = "clockwise", font = font_style)
+        } else {
+          circos.text(i - 0.5, 1.2, gene_names[i], cex = text_size, adj = c(1, 0.5),
+                      facing = "reverse.clockwise", font = font_style)
+        }
+      }
+    }
+
+    # Anfang: Zeilenbeschriftungen hinzufügen
+    row_labels <- names(genome_length)
+    row_labels <- substr(colnames(mat), 1, 9)
+    circos.text(-1, 0.5, row_labels[j], cex = text_size, adj = c(1, 0.5), facing = "inside", niceFacing = TRUE)
+
+    # Ende: Zeilenbeschriftungen hinzufügen
+    circos.text(nr + 1, 0.5, genome_length[j], cex = text_size, adj = c(0, 0.5), facing = "inside", niceFacing = TRUE)
+  })
+}
+
+# Beenden der circlize Zeichnung
+circos.clear()
+
+text(0, 0, paste("BmNPV-Th2\nmean nt identity = ", round(mean(mat[, 2:5], na.rm = TRUE), digits = 1), "%", sep = ""), cex = 0.7, adj = c(0.5, 0.5), font = 1)
+
+dev.off()
+```
+
+#-------------
+
+## OrNV Circular Plot
+
+### Read and filter data
+
+```{r}
+wide_format <- read.csv(file = "output/CDS_per_read/cds_per_read_DUG42.csv")
+
+non_na_counts <- sapply(wide_format, function(col) sum(!is.na(col)))
+print(table(non_na_counts))
+
+#take only the reads with the most CDS
+wide_format <- wide_format[, order(non_na_counts, decreasing = TRUE)]
+```
+
+### Create Circos Plot
+
+```{r include=FALSE}
+f <- 2
+h <- 7.5
+w <- h
+
+options(bitmapType='cairo')
+png(filename = "output/circular_CDS_plot/circlize_plot_DUG42.png", width = w*f, height = h*f, units = "cm", res = 300)
+
+dug42_annotation <- c(
+  "dnapol",
+  "tlsp",
+  "gp13",
+  "ac81",
+  "",
+  "ts",
+  #"thymidylate synthase",
+  "CaN",
+  #"calcineurin phosphoesterase",
+  "",
+  "nese52",
+  "",
+  "mc",
+  #"mitochondrial carrier",
+  "odv-e66",
+  "",
+  "",
+  "vp39",
+  "polh/gran",
+  "pif-2",
+  "gp67",
+  "ac146",
+  "p47",
+  "",
+  "gp72",
+  "guanylate kinase",
+  "gp75",
+  "gp76",
+  "",
+  "gp78",
+  "",
+  "gp81",
+  "vlf-1",
+  "",
+  "",
+  "19kda",
+  "dnahel 1",
+  "",
+  "",
+  "61k/ac9",
+  "",
+  "gp93",
+  "gp94",
+  "gp95",
+  "lef-4",
+  "",
+  "gp97",
+  "gp23",
+  "gp22",
+  "gp19",
+  "",
+  "",
+  "",
+  "rr1",
+  "lef-5",
+  "gp84",
+  "gp83",
+  "",
+  "",
+  "pnpla",
+  #"patatin phospholipase",
+  "hzv115",
+  "lef-3",
+  "pif-1",
+  "gp51",
+  "",
+  "",
+  "lef-8",
+  "",
+  "",
+  "",
+  "",
+  "fic",
+  "",
+  "",
+  "ac68",
+  "",
+  "",
+  "DNAint/rec",
+  "gp58",
+  "semaphorin 1",
+  "semaphorin 2",
+  "gp59",
+  "gp60",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "gp61",
+  "38k",
+  "",
+  "",
+  "gp28",
+  "",
+  "",
+  "",
+  "",
+  "gp09",
+  "lef-9",
+  "mRNA decap 2",
+  "",
+  "ac120",
+  "",
+  "",
+  "rr2",
+  "",
+  "gp62",
+  "gp43",
+  "vp91",
+  "pif-3",
+  "dnahel 2",
+  "",
+  "",
+  "",
+  "",
+  "ac92",
+  "gp06",
+  "odv-e56",
+  "gp33",
+  "gp34",
+  "gp35",
+  "gp36",
+  "gp37",
+  "dnalig",
+  "gp39",
+  "gp41",
+  "",
+  "gp44",
+  "p74",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "gp48",
+  "",
+  "iap-3",
+  "",
+  "",
+  "gp17",
+  "",
+  ""
+)
+
+result_df <- wide_format
+
+result_df <- result_df[, !names(result_df) %in% "extracted_numbers"]
+#sel <- c("32540/1", "32538/1", "29069/1", "30212/1")
+result_df <- result_df[, c(1, 4, 5, 3, 6)]
+
+no_acmnpv <- 5
+#mat <- as.matrix(result_df[,1:no_acmnpv])
+
+mat <- as.matrix(result_df)
+sequence_names <- colnames(mat)
+sequence_names <- substr(sequence_names, 1, 11)
+
+#  read_name read_length no_cds   ISO    top
+#1   29069/1      126830    139 DUG42    Top
+#2   30212/1      125949    139 DUG42    Top
+#3   32538/1      127638    139 DUG42    Top
+#4   32540/1      128307    139 DUG42    Top
+#5   34828/1      149290    139 DUG42 Others
+#7    4536/1      124841    138 DUG42 Others
+
+genome_length <- c("127,615", "128,307", "127,638", "126,830", "125,949")
+names(genome_length) <- sequence_names
+genome_length <- genome_length[1:no_acmnpv]
+
+
+# Rownames von gene_annotation$annotation zuweisen
+rownames(mat)  <-  dug42_annotation
+
+# Farbfunktion für den Gradienten von Rot über Orange zu Gelb
+#my_col_fun <- colorRamp2(c(50, 90, 100), c("blue", "red", "yellow"))
+#my_col_fun <- colorRamp2(c(50, 90, 100), c("red", "yellow", "blue"))
+my_col_fun <- my_col_fun
+
+# Ein einziger Sektor
+sectors = "a"
+
+# Erstellung der fünf einzelnen Matrizen
+mat_list <- lapply(1:no_acmnpv, function(i) mat[, i, drop = FALSE])
+
+# Vektor zur Bestimmung der hervorgehobenen Zellen
+highlight_cells <- c(0, 0, 0, 0, 0, 0, 0, 0, 0)
+names(highlight_cells) <- colnames(mat)
+
+# Circopar Einstellungen und Initialisierung
+circos.par(cell.padding = c(0.001, 0.001, 0.001, 0.001), gap.degree = 67, start.degree = 89,
+           canvas.xlim = c(-1.07, 1.07), canvas.ylim = c(-1.07, 1.07))
+circos.initialize(sectors, xlim = c(0, 139))
+
+# Zeichnen der circos tracks
+for (j in 1:no_acmnpv) {
+  circos.track(ylim = c(0, 1), bg.border = NA, track.height = 0.08, panel.fun = function(x, y) {
+    nr <- nrow(mat_list[[j]])
+    for (i in 1:nr) {
+      if (is.na(mat_list[[j]][i, 1])) {
+        col <- "lightgrey"
+      } else {
+        col <- my_col_fun(mat_list[[j]][i, 1])
+      }
+      circos.rect(i - 1, 0, i, 1, border = "black", col = col, lwd = 0.2)
+      
+      # Hervorheben der Zellen durch ein Kreuz
+      if (i == highlight_cells[j]) {
+        circos.lines(c(i - 1, i), c(0, 1), col = "black", lwd = 1)
+        circos.lines(c(i - 1, i), c(1, 0), col = "black", lwd = 1)
+      }
+    }
+
+    text_size <- 0.5
+    font_style = 1
+
+    # Hinzufügen der Beschriftungen nur im ersten Track
+    if (j == 1) {
+      gene_names = rownames(mat_list[[j]])
+      half = floor(nr / 1.7)
+      for (i in seq_len(nr)) {
+        if (i <= half) {
+          circos.text(i - 0.5, 1.2, gene_names[i], cex = text_size, adj = c(0, 0.5),
+                      facing = "clockwise", font = font_style)
+        } else {
+          circos.text(i - 0.5, 1.2, gene_names[i], cex = text_size, adj = c(1, 0.5),
+                      facing = "reverse.clockwise", font = font_style)
+        }
+      }
+    }
+
+    # Anfang: Zeilenbeschriftungen hinzufügen
+    row_labels <- names(genome_length)
+    #row_labels <- substr(colnames(mat), 1, no_acmnpv)
+    circos.text(-1, 0.5, row_labels[j], cex = text_size, adj = c(1, 0.5), facing = "inside", niceFacing = TRUE)
+
+    # Ende: Zeilenbeschriftungen hinzufügen
+    circos.text(nr + 1, 0.5, genome_length[j], cex = text_size, adj = c(0, 0.5), facing = "inside", niceFacing = TRUE)
+  })
+}
+
+# Beenden der circlize Zeichnung
+circos.clear()
+
+text(0, 0, paste("OrNV-DUG42\nmean nt identity = ", round(mean(mat[, 2:5], na.rm = TRUE), digits = 1), "%", sep = ""), cex = 0.7, adj = c(0.5, 0.5), font = 1)
+
+dev.off()
+```
+
+#-------------
+
+## WSSV Circular Plot
+
+### Read and filter data
+
+```{r}
+wide_format <- read.csv(file = "output/CDS_per_read/cds_per_read_JP04.csv")
+
+non_na_counts <- sapply(wide_format, function(col) sum(!is.na(col)))
+print(table(non_na_counts))
+
+#take only the reads with the most CDS
+wide_format <- wide_format[, order(non_na_counts, decreasing = TRUE)]
+```
+### Create Circos Plot
+
+```{r include=FALSE}
+f <- 2
+h <- 7.5
+w <- h
+
+options(bitmapType='cairo')
+png(filename = "output/circular_CDS_plot/circlize_plot_JP04.png", width = w*f, height = h*f, units = "cm", res = 300)
+
+jp04_annotation <- c(
+  "vp180",
+  "vp24",
+  "",
+  "",
+  "vp12",
+  "env protein",           # Keine Abkürzung vorhanden
+  "vp150",
+  "dbd",                  # DNA-binding domain
+  "gcp",                  # Keine Abkürzung vorhanden
+  "",
+  "",
+  "vp110",
+  "vp160b",
+  "",
+  "ie",                   # Immediate early
+  "ie",                   # Immediate early
+  "",
+  "",
+  "TS",                   # thymidylate synthetase
+  "ie-1",                 # Immediate early 1
+  "",
+  "",
+  "vp36a",
+  "ie",                   # Immediate early
+  "ie",                   # Immediate early
+  "pk-2",                 # Keine Abkürzung vorhanden
+  "",
+  "",
+  "ie",                   # Immediate early
+  "CREB-binding",         # Keine kürzere Abkürzung
+  "",
+  "",
+  "proPO inhibitor",      # prophenoloxidase inhibitor
+  "dUTPase",              # dUTP pyrophosphatase
+  "vp53b",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "capsid wsv131",        # Keine Abkürzung vorhanden
+  "",
+  "struc protein",         # structural wsv134
+  "struc protein",         # structural wsv136
+  "vp337",
+  "latency-assoc",        # latency-associated
+  "",
+  "non-struc",     # non-structural wsv143
+  "phosphoest",  # putative phosphoesterase
+  "",
+  "",
+  "latency-rel",          # latency-related
+  "",
+  "",
+  "rr-1",                 # Ribonucleotide reductase 1
+  "",
+  "ie-2",                 # Immediate early 2
+  "",
+  "",
+  "",
+  "rr-2",                 # Ribonucleotide reductase 2
+  "endonuclease",         # Keine Abkürzung vorhanden
+  "",
+  "",
+  "vp32",
+  "RING",                 # RING finger
+  "",
+  "",
+  "",
+  "",
+  "vp187",
+  "dbd vp15",             # DNA-binding domain vp15
+  "vp124",
+  "vp76",
+  "e3 ligase",            # Keine Abkürzung vorhanden
+  "",
+  "icp11",                # Keine Abkürzung vorhanden
+  "",
+  "",
+  "vp41a",
+  "vp52a",
+  "vp41b",
+  "",
+  "",
+  "e3 ligase",            # Keine Abkürzung vorhanden
+  "DUF1335",              # Domain of unknown function 1335
+  "vp281",
+  "vp52b",
+  "vp38",
+  "",
+  "AAP",                  # Apoptosis-associated protein
+  "struc vp53c",          # structural vp53c
+  "",
+  "vp136",
+  "",
+  "",
+  "",
+  "struc vp13a",          # structural vp13a
+  "",
+  "vp190",
+  "vp14",
+  "",
+  "env protein",          # Keine Abkürzung vorhanden
+  "",
+  "",
+  "TBP",                  # TATA-binding protein
+  "vp39a",
+  "vp51c",
+  "",
+  "vp26",
+  "",
+  "vp16",
+  "",
+  "",
+  "vp56",
+  "vp90",
+  "",
+  "vp11",
+  "vp39",
+  "vp31",
+  "",
+  "",
+  "vp664",
+  "vp12b",
+  "",
+  "AAP-1",                # Apoptosis-associated protein 1
+  "tk-tmk",               # Keine Abkürzung vorhanden
+  "",
+  "",
+  "tegument prot",        # tegument protein
+  "e3 ligase",            # Keine Abkürzung vorhanden
+  "",
+  "",
+  "",
+  "env protein",          # Keine Abkürzung vorhanden
+  "vp19",
+  "vp60b",
+  "struc protein",        # structural protein
+  "",
+  "vp28",
+  "pk-1",                 # Keine Abkürzung vorhanden
+  "lat-assoc prot",       # latency-associated protein
+  "env protein",          # Keine Abkürzung vorhanden
+  "",
+  "",
+  "vp95",
+  "",
+  "putative dnahel",      # Keine Abkürzung vorhanden
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "ie",                   # Immediate early
+  "",
+  "",
+  "GTP",                  # Keine Abkürzung vorhanden
+  "",
+  "",
+  "",
+  "",
+  "",
+  "trx vp362",            # thioredoxin vp362
+  "",
+  "DNApol",               # DNA polymerase
+  "",
+  "vp55"
+)
+
+result_df <- wide_format
+
+result_df <- result_df[, !names(result_df) %in% "extracted_numbers"]
+result_df <- result_df[, c(1:3)]
+
+no_acmnpv <- 3
+#mat <- as.matrix(result_df[,1:no_acmnpv])
+
+mat <- as.matrix(result_df)
+sequence_names <- c("WSSV-JP04", "56297/1", "149931/1")
+
+genome_length <- c("301,054", "138,184", "132,543")
+names(genome_length) <- sequence_names
+genome_length <- genome_length[1:no_acmnpv]
+
+
+# Rownames von gene_annotation$annotation zuweisen
+rownames(mat)  <-  jp04_annotation
+
+my_col_fun <- my_col_fun
+
+# Ein einziger Sektor
+sectors = "a"
+
+# Erstellung der fünf einzelnen Matrizen
+mat_list <- lapply(1:no_acmnpv, function(i) mat[, i, drop = FALSE])
+
+# Vektor zur Bestimmung der hervorgehobenen Zellen
+highlight_cells <- c(0, 0, 0, 0, 0, 0, 0, 0, 0)
+names(highlight_cells) <- colnames(mat)
+
+# Circopar Einstellungen und Initialisierung
+circos.par(cell.padding = c(0.001, 0.001, 0.001, 0.001), gap.degree = 67, start.degree = 89,
+           canvas.xlim = c(-1.15, 1.15), canvas.ylim = c(-1.15, 1.15))
+circos.initialize(sectors, xlim = c(0, 169))
+
+# Zeichnen der circos tracks
+for (j in 1:no_acmnpv) {
+  circos.track(ylim = c(0, 1), bg.border = NA, track.height = 0.08, panel.fun = function(x, y) {
+    nr <- nrow(mat_list[[j]])
+    for (i in 1:nr) {
+      if (is.na(mat_list[[j]][i, 1])) {
+        col <- "lightgrey"
+      } else {
+        col <- my_col_fun(mat_list[[j]][i, 1])
+      }
+      circos.rect(i - 1, 0, i, 1, border = "black", col = col, lwd = 0.2)
+      
+      # Hervorheben der Zellen durch ein Kreuz
+      if (i == highlight_cells[j]) {
+        circos.lines(c(i - 1, i), c(0, 1), col = "black", lwd = 1)
+        circos.lines(c(i - 1, i), c(1, 0), col = "black", lwd = 1)
+      }
+    }
+
+    text_size <- 0.5
+    font_style = 1
+
+    # Hinzufügen der Beschriftungen nur im ersten Track
+    if (j == 1) {
+      gene_names = rownames(mat_list[[j]])
+      half = floor(nr / 1.7)
+      for (i in seq_len(nr)) {
+        if (i <= half) {
+          circos.text(i - 0.5, 1.2, gene_names[i], cex = text_size, adj = c(0, 0.5),
+                      facing = "clockwise", font = font_style)
+        } else {
+          circos.text(i - 0.5, 1.2, gene_names[i], cex = text_size, adj = c(1, 0.5),
+                      facing = "reverse.clockwise", font = font_style)
+        }
+      }
+    }
+
+    # Anfang: Zeilenbeschriftungen hinzufügen
+    row_labels <- names(genome_length)
+    #row_labels <- substr(colnames(mat), 1, no_acmnpv)
+    circos.text(-1, 0.5, row_labels[j], cex = text_size, adj = c(1, 0.5), facing = "inside", niceFacing = TRUE)
+
+    # Ende: Zeilenbeschriftungen hinzufügen
+    circos.text(nr + 1, 0.5, genome_length[j], cex = text_size, adj = c(0, 0.5), facing = "inside", niceFacing = TRUE)
+  })
+}
+
+# Beenden der circlize Zeichnung
+circos.clear()
+
+text(0, 0, paste("MAG: WSSV-JP04\nmean nt identity = ", round(mean(mat[, 2:3], na.rm = TRUE), digits = 1), "%", sep = ""), cex = 0.7, adj = c(0.5, 0.5), font = 1)
+
+dev.off()
+```
+
+
+#-------------
+
+# Manual color scale legend
+
+```{r message=FALSE}
+library(ggplot2)
+library(cowplot)
+library(grid)
+
+# Erstellen einer Dummy-Datenstruktur nur für die Farbskala
+df <- data.frame(
+  x = c(75, 90, 100),
+  y = c(1, 1, 1),
+  label = c("75", "90", "100")
+)
+
+# Erstellen der Legende mit vergrößerter Farbskala, zentriertem Titel und größerem Abstand
+p <- ggplot(df, aes(x = x, y = y, fill = x)) +
+  geom_tile() +
+  scale_fill_gradientn(colors = c("red", "yellow", "blue"), limits = c(75, 100)) +
+  theme_void() +  # Entfernt die Achsen und andere unnötige Teile
+  guides(fill = guide_colorbar(title = "ORF nt identity (%)", 
+                               barwidth = unit(1, "cm"),  # Breiter machen
+                               barheight = unit(4, "cm"),  # Höhe anpassen
+                               title.position = "top",      # Titel oben platzieren
+                               title.hjust = 0.5,           # Titel zentrieren
+                               title.theme = element_text(size = 12, 
+                                                          margin = margin(b = 10)),  
+                               label.theme = element_text(size = 10))) +  # Beschriftungsgröße anpassen
+  theme(legend.position = "right",
+        legend.title = element_text(hjust = 0.5))  # Zentriert den Titel
+
+# Zeigt nur die Legende an
+legend <- cowplot::get_legend(p)
+
+f = 2
+# Erstellen einer Grafikdatei und Speichern der Legende als PNG
+png("output/circular_CDS_plot/legend.png", width = 300*f, height = 500*f, res = 300, bg = "transparent")  # Passen Sie die Größe nach Bedarf an
+grid.newpage()
+grid.draw(legend)
+dev.off()
+```
+
+#-------------
+
+# Combine Plots with Legend
+
+## BmNPV + OrNV
+
+```{r}
+library(magick)
+
+# Lese die beiden PNG-Dateien ein
+image1 <- image_read("output/circular_CDS_plot/circlize_plot_Th2.png")
+image2 <- image_read("output/circular_CDS_plot/circlize_plot_DUG42.png")
+
+# Kombiniere die beiden Bilder nebeneinander
+combined_image <- image_append(c(image1, image2), stack = TRUE)
+
+# Speichere das kombinierte Bild als neues PNG
+image_write(combined_image, path = "output/circular_CDS_plot/circlize_plot_Th2_OrNV.png")
+```
+
+
+```{r}
+
+# Lese die beiden PNG-Dateien ein
+image1 <- image_read("output/circular_CDS_plot/circlize_plot_Th2_OrNV.png")
+image2 <- image_read("output/circular_CDS_plot/legend.png")
+image2 <- image_scale(image2, "70%")
+
+# Berechne die Position für die zweite Grafik
+# Mittig links, etwas versetzt vom Zentrum
+offset_x <- 1350
+offset_y <- 1370
+
+
+# Überlagere die zweite Grafik auf der ersten
+combined_image <- image_composite(image1, image2, offset = paste0("+", offset_x, "+", offset_y))
+
+# Speichere das kombinierte Bild als neues PNG
+image_write(combined_image, path = "output/circular_CDS_plot/circlize_plot_BmNPV_OrNV_legend.png")
+```
+
+
+```{r}
+text_size = 75
+xoff <- 200
+yoff <- 150
+xoffloc <- paste("+", xoff, "+", yoff, sep = "")
+
+# Lese die PNG-Datei ein
+image <- image_read("output/circular_CDS_plot/circlize_plot_BmNPV_OrNV_legend.png")
+
+# Füge Text A links oben hinzu
+image_with_text <- image_annotate(
+  image,
+  text = "A",
+  location = xoffloc, # Positioniere Text A 10 Pixel von oben und 10 Pixel von links
+  size = text_size, # Schriftgröße
+  color = "black" # Textfarbe
+)
+
+# Bestimme die Abmessungen der Grafik
+image_info <- image_info(image_with_text)
+image_width <- image_info$width
+image_height <- image_info$height
+
+# Berechne die Position für Text B (mittig links)
+offset_x <- xoff # 10 Pixel vom linken Rand
+offset_y <- (image_height / 2) + yoff# Vertikale Mitte
+
+# Füge Text B mittig links hinzu
+image_with_text <- image_annotate(
+  image_with_text,
+  text = "B",
+  location = paste0("+", offset_x, "+", offset_y),
+  size = text_size, # Schriftgröße
+  color = "black" # Textfarbe
+)
+
+# Speichere das Bild mit dem Text als neues PNG
+image_write(image_with_text, path = "output/circular_CDS_plot/circlize_plot_BmNPV_OrNV_legend_AB.png")
+```
+

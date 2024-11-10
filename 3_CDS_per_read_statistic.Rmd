@@ -314,7 +314,6 @@ pLC_JA04 <- ggplot(length_CDS_JP04, aes(x = read_length, y = no_cds, color = top
 print(pLC_JA04)
 ```
 
-
 ## Combine and save plot
 
 ```{r}
