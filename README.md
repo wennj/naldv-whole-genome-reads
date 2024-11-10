@@ -105,4 +105,4 @@ In the last step, the reads with the highest number of CDSs can be visualized in
 
 [Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/4_circular_read_plot.Rmd)
 
-![](output/circular_CDS_plot/circlize_plot_BmNPV_OrNV_legend_AB.png){width="30%"}
+![](output/circular_CDS_plot/circlize_plot_BmNPV_OrNV_legend_AB.png){width="40%"}
