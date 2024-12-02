@@ -4,6 +4,8 @@ The figures and content in this repository are derived from the following public
 
 **Wennmann, J.T. (submitted). Nanopore reads spanning the whole genome of arthropod-infecting large dsDNA viruses of the class Naldaviricetes enable assembly-free sequence analysis. [DOI link to the publication]**
 
+------------------------------------------------------------------------
+
 ## Aim of this repository
 
 -   Learn how to approach Nanopore sequence data sets of NALDVs. It demonstrates the importance of carefully examining the data to avoid subsequent errors in the analysis.
@@ -13,6 +15,8 @@ The figures and content in this repository are derived from the following public
 -   Present and explain the code used to create the figures in the manuscript (Wennmann, submitted).
 
 -   Particular attention is paid to the detection of reads that may comprise entire genomes of NALDVs and represent individual viral genomes.
+
+------------------------------------------------------------------------
 
 ## Importance of Nanopore sequencing for NALDV genomes
 
@@ -32,9 +36,11 @@ Analysing the availability of Illumina and Nanopore data sets on NCBI SRA is a b
 
 ## Quality of sequencing techniques
 
-‘Sequencing by synthesis’ and Nanopore sequencing are based on completely different methods. While Illumina sequencing (sequencing by synthesis) generates short reads that are extremely accurate, the probability of error is much higher for the long reads of Nanopore sequencing. The following graphic was created to illustrate this. The X-axis shows the Phred quality score (Q), which was converted into the error probability (Y-axis): $$
-P = 10^{-\frac{Q}{10}}
-$$ The values of selected raw sequencing data, which is available on NCBI SRA, were visualized by this plot. The vertical and horizontal dashed lines connect Q = 20 with the corresponding P = 1%.
+‘Sequencing by synthesis’ and Nanopore sequencing are based on completely different methods. While Illumina sequencing (sequencing by synthesis) generates short reads that are extremely accurate, the probability of error is much higher for the long reads of Nanopore sequencing. The following graphic was created to illustrate this. The X-axis shows the Phred quality score (Q), which was converted into the error probability (Y-axis):
+
+P = 10\^(-Q/10).
+
+The values of selected raw sequencing data, which is available on NCBI SRA, were visualized by this plot. The vertical and horizontal dashed lines connect Q = 20 with the corresponding P = 1%.
 
 [Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/quality_score_visualization.R)
 
@@ -45,7 +51,7 @@ $$ The values of selected raw sequencing data, which is available on NCBI SRA, w
 To determine the length of Nanopore reads from a sequencing run, it is best to create a distribution of sequenced DNA fragments. In the present example, three data sets of BmNPV-Th2 (family Baculoviridae), OrNV-DUG42 (family Nudiviridae) and WSSV-JP04 (family Nimaviridae) were analysed with regard to their length distribution:
 
 | Name        | NCBI SRA Number | Reference                                    |
-|----------------|----------------|----------------------------------------|
+|------------------|------------------|------------------------------------|
 | BmNPV-Th2   | SRR27030578     | <https://doi.org/10.1016/j.jip.2024.108221>  |
 | OrNV-DUG42  | SRR21977634     | <https://doi.org/10.1128/mra.00126-23>       |
 | WSSV-JP04   | DRR420912       | <https://doi.org/10.1007/s12562-023-01715-4> |
