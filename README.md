@@ -18,6 +18,10 @@ The figures and content in this repository are derived from the following public
 
 ------------------------------------------------------------------------
 
+## Data availability
+
+All datasets of the workflow presented below are available under [/data](/data).
+
 ## Importance of Nanopore sequencing for NALDV genomes
 
 Nanopore sequencing is becoming increasingly popular for sequencing the genomes of nuclear arthropod-specific large DNA viruses (NALDV). In particular, in combination with Illumina sequencing, it provides a highly accurate method for error-free decoding of large repetitive sequence regions. As of July 2024, hundreds of genomes in the Naldaviricetes class have been published in the NCBI Genbank. These are consensus sequences based on assemblies. Nanopore sequencing makes it possible for the first time to sequence significantly large fragments of NALDV genomes. It is even conceivable that entire genomes could be sequenced in single reads, enabling assembly-free analysis of NALDV genomes.
