@@ -34,7 +34,7 @@ The XML files are first read into R and converted into a data frame. The virus n
 
 Analysing the availability of Illumina and Nanopore data sets on NCBI SRA is a bit easier. You can search and filter for the datasets on NCBI. All hits can be downloaded directly as a CSV files. These files then serve as input for the subsequent analysis. The result is a plot showing the time course of the published SRA data sets (Illumina and Nanopore) as of July 2024.
 
-[Click here for the R code used to create the figure.](NCBI_statistics.Rmd)
+[Click here for the R code used to create the figure.](https://github.com/wennj/naldv-whole-genome-reads/blob/main/1_NCBI_statistics.Rmd)
 
 ![](output/ncbi_stats/NALDV_stats_on_Genbank_SRA.png)
 
